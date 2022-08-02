@@ -166,7 +166,7 @@ Reply from ::1: time*";
             ConsoleAssert.ExecuteProcess(
                 expected,
                 "ping", pingArgs, out string standardOutput, out _);
-            Assert.IsTrue(standardOutput.ToLower().IsLike($"*{Environment.MachineName.ToLower()}*"));
+            Assert.IsTrue(standardOutput.ToLower().IsLike($"*{Environment.MachineName.ToLower()}*"), $"The machine name {Environment.MachineName.ToLower()} was not found in the ping message {standardOutput.ToLower()}");
         }
 
         [TestMethod]
