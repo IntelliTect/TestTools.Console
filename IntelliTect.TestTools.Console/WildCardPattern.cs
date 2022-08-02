@@ -86,7 +86,8 @@ namespace IntelliTect.TestTools.Console
         /// <returns>The constructed WildcardPattern object</returns>
         /// <remarks> if wildCardType == None, the pattern does not have wild cards</remarks>
         public WildcardPattern(string pattern) :
-            this(pattern, WildcardOptions.None) { }
+            this(pattern, WildcardOptions.None)
+        { }
 
         /// <summary>
         /// Initializes an instance of the WildcardPattern class for
@@ -953,7 +954,8 @@ namespace IntelliTect.TestTools.Console
             // than implementing IEnumerable / virtual MoveNext
             public bool MoveNext(out int patternPosition)
             {
-                if (_patternPositionsForFurtherProcessingCount < 0) {
+                if (_patternPositionsForFurtherProcessingCount < 0)
+                {
                     throw new InvalidOperationException(
                             "There should never be more elements in the queue than the length of the pattern");
                 }

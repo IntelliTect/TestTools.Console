@@ -1,10 +1,10 @@
 ﻿using System;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.CodeDom.Compiler;
-using System.CodeDom;
 
 namespace IntelliTect.TestTools.Console
 {
@@ -26,12 +26,12 @@ namespace IntelliTect.TestTools.Console
         [Obsolete("Use Expect with " + nameof(NormalizeOptions))]
         public static string Expect(string expected, Action action, bool normalizeLineEndings)
         {
-            return Expect(expected, 
-                action, 
-                (left, right) => left == right, 
+            return Expect(expected,
+                action,
+                (left, right) => left == right,
                 normalizeLineEndings ? NormalizeOptions.NormalizeLineEndings : NormalizeOptions.None);
         }
-        
+
         /// <summary>
         /// Performs a unit test on a console-based method. A "view" of
         /// what a user would see in their console is provided as a string,
@@ -43,12 +43,12 @@ namespace IntelliTect.TestTools.Console
         /// <param name="action">Method to be run</param>
         /// <param name="normalizeOptions">Options to normalize input and expected output</param>
         public static string Expect(string expected,
-            Action action, 
+            Action action,
             NormalizeOptions normalizeOptions = NormalizeOptions.Default)
         {
-            return Expect(expected, 
-                action, 
-                (left, right) => left == right, 
+            return Expect(expected,
+                action,
+                (left, right) => left == right,
                 normalizeOptions);
         }
 
@@ -66,17 +66,17 @@ namespace IntelliTect.TestTools.Console
         /// <param name="args">Args to pass to the function.</param>
         /// <param name="normalizeLineEndings">Whether differences in line ending styles should be ignored.</param>
         [Obsolete("Use Expect with " + nameof(NormalizeOptions))]
-        public static string Expect(string expected, 
-            Action<string[]> action, 
-            bool normalizeLineEndings = true, 
+        public static string Expect(string expected,
+            Action<string[]> action,
+            bool normalizeLineEndings = true,
             params string[] args)
         {
-            return Expect(expected, 
-                ()=>action(args), 
-                (left, right) => left == right, 
+            return Expect(expected,
+                () => action(args),
+                (left, right) => left == right,
                 normalizeLineEndings ? NormalizeOptions.NormalizeLineEndings : NormalizeOptions.None);
         }
-        
+
         /// <summary>
         /// <para>
         /// Performs a unit test on a console-based method. A "view" of
@@ -90,14 +90,14 @@ namespace IntelliTect.TestTools.Console
         /// <param name="action">Method to be run</param>
         /// <param name="args">Args to pass to the function.</param>
         /// <param name="normalizeOptions">Options to normalize input and expected output</param>
-        public static string Expect(string expected, 
-            Action<string[]> action, 
-            NormalizeOptions normalizeOptions = NormalizeOptions.Default, 
+        public static string Expect(string expected,
+            Action<string[]> action,
+            NormalizeOptions normalizeOptions = NormalizeOptions.Default,
             params string[] args)
         {
-            return Expect(expected, 
-                ()=>action(args), 
-                (left, right) => left == right, 
+            return Expect(expected,
+                () => action(args),
+                (left, right) => left == right,
                 normalizeOptions);
         }
 
@@ -125,7 +125,7 @@ namespace IntelliTect.TestTools.Console
 
             if (!expectedReturn.Equals(@return))
             {
-                throw new Exception($"The value returned from {nameof(func)} ({@return}) was not the { nameof(expectedReturn) }({expectedReturn}) value.");
+                throw new Exception($"The value returned from {nameof(func)} ({@return}) was not the {nameof(expectedReturn)}({expectedReturn}) value.");
             }
         }
 
@@ -144,11 +144,11 @@ namespace IntelliTect.TestTools.Console
         [Obsolete]
         public static string ExpectNoTrimOutput(string expected, Action action)
         {
-            return Expect(expected, 
-                action, 
+            return Expect(expected,
+                action,
                 (left, right) => left == right);
         }
-        
+
         /// <summary>
         /// <para>
         /// Performs a unit test on a console-based method. A "view" of
@@ -197,13 +197,13 @@ namespace IntelliTect.TestTools.Console
         /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
         private static string Expect(
             string expected, Action action, Func<string, string, bool> comparisonOperator,
-            NormalizeOptions normalizeOptions = NormalizeOptions.Default, 
-            string equivalentOperatorErrorMessage= "Values are not equal")
+            NormalizeOptions normalizeOptions = NormalizeOptions.Default,
+            string equivalentOperatorErrorMessage = "Values are not equal")
         {
             (string input, string output) = Parse(expected);
 
-            return Execute(input, output, action, 
-                (left, right)=>comparisonOperator(left,right), 
+            return Execute(input, output, action,
+                (left, right) => comparisonOperator(left, right),
                 normalizeOptions, equivalentOperatorErrorMessage);
         }
 
@@ -225,7 +225,7 @@ namespace IntelliTect.TestTools.Console
         {
             return Expect(expected, action, (pattern, output) => output.IsLike(pattern, escapeCharacter));
         }
-		
+
         /// <summary>
         /// Performs a unit test on a console-based method. A "view" of
         /// what a user would see in their console is provided as a string,
@@ -238,16 +238,16 @@ namespace IntelliTect.TestTools.Console
         /// <param name="normalizeLineEndings">Whether differences in line ending styles should be ignored.</param>
         /// <param name="escapeCharacter">The escape character for the wildcard caracters.  Default is '\'.</param>
         [Obsolete]
-        public static string ExpectLike(string expected, Action action, 
+        public static string ExpectLike(string expected, Action action,
             bool normalizeLineEndings, char escapeCharacter = '\\')
         {
-            return Expect(expected, 
-                action, 
+            return Expect(expected,
+                action,
                 (pattern, output) => output.IsLike(pattern, escapeCharacter),
-                normalizeLineEndings ? NormalizeOptions.NormalizeLineEndings : NormalizeOptions.None, 
+                normalizeLineEndings ? NormalizeOptions.NormalizeLineEndings : NormalizeOptions.None,
                 "The values are not like (using wildcards) each other");
         }
-        
+
         /// <summary>
         /// Performs a unit test on a console-based method. A "view" of
         /// what a user would see in their console is provided as a string,
@@ -259,15 +259,15 @@ namespace IntelliTect.TestTools.Console
         /// <param name="action">Method to be run</param>
         /// <param name="normalizeLineEndings">Whether differences in line ending styles should be ignored.</param>
         /// <param name="escapeCharacter">The escape character for the wildcard caracters.  Default is '\'.</param>
-        public static string ExpectLike(string expected, 
-            Action action, 
-            NormalizeOptions normalizeLineEndings = NormalizeOptions.Default, 
+        public static string ExpectLike(string expected,
+            Action action,
+            NormalizeOptions normalizeLineEndings = NormalizeOptions.Default,
             char escapeCharacter = '\\')
         {
-            return Expect(expected, 
-                action, 
+            return Expect(expected,
+                action,
                 (pattern, output) => output.IsLike(pattern, escapeCharacter),
-                normalizeLineEndings, 
+                normalizeLineEndings,
                 "The values are not like (using wildcards) each other");
         }
 
@@ -289,7 +289,7 @@ namespace IntelliTect.TestTools.Console
 
             return input;
         }
-        
+
         /// <summary>
         /// Strips VT100 color characters from the input string
         /// </summary>
@@ -367,20 +367,20 @@ namespace IntelliTect.TestTools.Console
                 TextReader savedInputStream = System.Console.In;
                 try
                 {
-                        string output;
-                        using (TextWriter writer = new StringWriter())
-                        using (TextReader reader = new StringReader(string.IsNullOrWhiteSpace(givenInput) ? "" : givenInput))
-                        {
-                            System.Console.SetOut(writer);
+                    string output;
+                    using (TextWriter writer = new StringWriter())
+                    using (TextReader reader = new StringReader(string.IsNullOrWhiteSpace(givenInput) ? "" : givenInput))
+                    {
+                        System.Console.SetOut(writer);
 
-                            System.Console.SetIn(reader);
-                            action();
+                        System.Console.SetIn(reader);
+                        action();
 
-                            output = writer.ToString();
-                        }
-
-                        return output;
+                        output = writer.ToString();
                     }
+
+                    return output;
+                }
                 finally
                 {
                     System.Console.SetOut(savedOutputStream);
@@ -390,14 +390,14 @@ namespace IntelliTect.TestTools.Console
         }
 
 
-        private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage=null)
+        private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null)
         {
             string result = "";
 
-            result += string.Join(Environment.NewLine, $"{equivalentOperatorErrorMessage}:- ", 
+            result += string.Join(Environment.NewLine, $"{equivalentOperatorErrorMessage}:- ",
                 "-----------------------------------",
-                $"Expected: { CSharpStringEncode( expectedOutput) }",
-                $"Actual  : { CSharpStringEncode( output) }", 
+                $"Expected: {CSharpStringEncode(expectedOutput)}",
+                $"Actual  : {CSharpStringEncode(output)}",
                 "-----------------------------------");
 
             int expectedOutputLength = expectedOutput.Length;
@@ -443,9 +443,9 @@ namespace IntelliTect.TestTools.Console
         {
             string result;
             using (var writer = new StringWriter())
-            using (var provider = CodeDomProvider.CreateProvider("CSharp")) 
+            using (var provider = CodeDomProvider.CreateProvider("CSharp"))
             {
-                provider.GenerateCodeFromExpression(new CodePrimitiveExpression(text), writer, 
+                provider.GenerateCodeFromExpression(new CodePrimitiveExpression(text), writer,
                     new CodeGeneratorOptions() { BlankLinesBetweenMembers = false });
                 result = writer.ToString();
 
@@ -465,7 +465,7 @@ namespace IntelliTect.TestTools.Console
         /// What a user would see in the console, but with input/output tokens.
         /// </param>
         /// <returns>[0] Input, and [1] Output</returns>
-        private static (string Input,string Output) Parse(string view)  // TODO: Return Tuple instead.
+        private static (string Input, string Output) Parse(string view)  // TODO: Return Tuple instead.
         {
             // Note: This could definitely be optimized, wanted to try it for experience. RegEx perhaps?
             bool isInput = false;
@@ -504,7 +504,7 @@ namespace IntelliTect.TestTools.Console
                 }
             }
 
-            return (Input:input, Output:output);
+            return (Input: input, Output: output);
         }
 
         // TODO: Should not use LikeOperator by default.  Add a ConsoleTestsComparisonOptions enum 
