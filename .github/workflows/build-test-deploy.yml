@@ -67,6 +67,5 @@ jobs:
           name: NuGet
       - name: Push NuGet
         run: |
-          ls
           $tagVersion = "${{ github.ref }}".substring(11)
-          dotnet nuget push /TestTools.ConsolePack/IntelliTect.TestTools.Console.$tagVersion.nupkg --source https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate
+          dotnet nuget push IntelliTect.TestTools.Console.$tagVersion.nupkg --source https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate
