@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Runtime.InteropServices;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using IntelliTect.TestTools.Console;
 
 namespace IntelliTect.TestTools.Console.Tests
 {
@@ -59,8 +57,8 @@ namespace IntelliTect.TestTools.Console.Tests
         [DataRow("\u001b[49m", "", true)]
         [DataRow("\u001b[101mMontoya", "Montoya", true)]
         [DataRow("\u001b[101mMontoya", "\u001b[101mMontoya", false)]
-        public void ConsoleTester_StringWithVT100Characters_VT100Stripped(string input, 
-            string expected, 
+        public void ConsoleTester_StringWithVT100Characters_VT100Stripped(string input,
+            string expected,
             bool stripVT100)
         {
             ConsoleAssert.Expect(expected, () =>
@@ -105,12 +103,12 @@ End";
                 System.Console.Write("Hello World");
             });
         }
-        
+
         [TestMethod]
         public void ConsoleTester_HelloWorld_DontNormalizeCRLF()
         {
             const string view = "Hello World\r\n";
-            
+
             Assert.ThrowsException<Exception>(() =>
             {
                 ConsoleAssert.Expect(view, () =>
@@ -126,8 +124,10 @@ End";
         [DataRow("+hello+world+")]
         public void ConsoleTester_OutputIncludesPluses_PlusesAreNotStripped(string consoleInput)
         {
-            Exception exception = Assert.ThrowsException<Exception>(() => {
-                ConsoleAssert.Expect(consoleInput, () => {
+            Exception exception = Assert.ThrowsException<Exception>(() =>
+            {
+                ConsoleAssert.Expect(consoleInput, () =>
+                {
                     System.Console.Write(""); // Always fail
                 }, NormalizeOptions.None);
             });

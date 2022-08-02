@@ -1,5 +1,5 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 
 namespace IntelliTect.TestTools.Console.Tests
 {
@@ -39,7 +39,7 @@ namespace IntelliTect.TestTools.Console.Tests
         {
             const string output = @"*3";
 
-            Assert.IsTrue(output.IsLike("`*3",'`'));
+            Assert.IsTrue(output.IsLike("`*3", '`'));
         }
 
         [TestMethod]
