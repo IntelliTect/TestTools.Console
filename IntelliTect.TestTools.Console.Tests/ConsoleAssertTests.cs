@@ -157,11 +157,10 @@ Reply from ::1: time*";
             {
                 pingArgs = pingArgs.Replace("-c ", "-n ");
             }
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                expected = $@"*
-PING * ?(* ? (::1)) 56 data bytes
-64 bytes from * ? (::1): icmp_seq=1 ttl=64 time=* ms*";
+                expected = $@"PING *(* (::1)) 56 data bytes
+64 bytes from * (::1): icmp_seq=1 ttl=64 time=* ms*";
             }
 
             ConsoleAssert.ExecuteProcess(
