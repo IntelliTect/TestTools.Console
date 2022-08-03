@@ -3,6 +3,8 @@ TestTools.Console
 
 Console is a simple end-to-end test framework for .NET console applications.
 
+Check out the package at https://www.nuget.org/packages/IntelliTect.TestTools.Console
+
 This currently has non-optimal nomenclature and is not guaranteed to be efficient, but it appears to work.
 
 Usage
