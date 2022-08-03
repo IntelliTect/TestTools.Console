@@ -12,7 +12,18 @@
     <Authors>Mark Michaelis</Authors>
     
     <PackageTags>IntelliTect, TestTools, Console, TestAPI</PackageTags>
+    
+    <PackageProjectUrl>https://github.com/IntelliTect/TestTools.Console</PackageProjectUrl>
+    
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CodeDom" Version="4.5.0" />
