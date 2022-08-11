@@ -1,12 +1,8 @@
-name: Build, Test, and Deploy
+name: Deploy
 
 on:
-  push:
-    branches: [ main ]
   release:
     types: [created]
-  pull_request:
-    branches: [ main ]
 
 defaults:
   run:
