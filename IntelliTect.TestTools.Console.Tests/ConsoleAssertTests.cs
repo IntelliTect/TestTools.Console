@@ -162,6 +162,11 @@ Reply from ::1: time*";
                 expected = $@"PING *(* (::1)) 56 data bytes
 64 bytes from * (::1): icmp_seq=1 ttl=64 time=* ms*";
             }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                expected = $@"PING *(*): 56 data bytes
+64 bytes from *: icmp_seq=? ttl=64 time=* ms*";
+            }
 
             ConsoleAssert.ExecuteProcess(
                 expected,
