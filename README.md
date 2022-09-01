@@ -1,4 +1,4 @@
-TestTools.Console
+[TestTools.Console](https://www.nuget.org/packages/IntelliTect.TestTools.Console/): [![NuGet](https://img.shields.io/nuget/v/IntelliTect.TestTools.Console.svg)](https://www.nuget.org/packages/IntelliTect.TestTools.Console/)
 ===========
 
 Console is a simple end-to-end test framework for .NET console applications.
