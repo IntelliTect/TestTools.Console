@@ -3,7 +3,7 @@
         <Company>IntelliTect</Company>
         <Copyright>Copyright IntelliTect © $([System.DateTime]::Now.ToString(`yyyy`)), All Rights Reserved.</Copyright>
         <DefaultLanguage>en-US</DefaultLanguage>
-        <LangVersion>latest</LangVersion>
+        <LangVersion>10</LangVersion>
 
         <VersionSuffix Condition=" '$(TESTTOOLS_VERSION_SUFFIX)' != '' ">$(TESTTOOLS_VERSION_SUFFIX)</VersionSuffix>
 
@@ -20,5 +20,16 @@
 
     <ItemGroup Condition="$(IsPackable) == 'true'">
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Using Include="System"/>
+      <Using Include="System.Collections.Generic"/>
+      <Using Include="System.Diagnostics"/>
+      <Using Include="System.Globalization"/>
+      <Using Include="System.IO"/>
+      <Using Include="System.Linq"/>
+      <Using Include="System.Text"/>
+      <Using Include="System.Text.RegularExpressions"/>
     </ItemGroup>
 </Project>

@@ -1,54 +1,49 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿namespace IntelliTect.TestTools.Console.Tests;
 
-namespace IntelliTect.TestTools.Console.Tests
+[TestClass]
+public class StringExtensionsTests
 {
-    [TestClass]
-    public class StringExtensionsTests
+    [TestMethod]
+    [DataRow("ThisIsATest", "ThisIsATest")]
+    [DataRow("ThisIsATest", "This*Test")]
+    [DataRow("ThisIsTestNumber 3", "ThisIsTestNumber* 3")]
+    public void IsLike_GivenLikeString_ReturnsTrue(string @string, string isLike)
     {
-        [TestMethod]
-        public void IsLike_GivenLikeString_ReturnsTrue()
-        {
-            Assert.IsTrue("ThisIsATest".IsLike("ThisIsATest"));
-            Assert.IsTrue("ThisIsATest".IsLike("This*Test"));
-            Assert.IsTrue("ThisIsTestNumber 3".IsLike("ThisIsTestNumber* 3"));
-            Assert.IsTrue("ThisIsATest".IsLike("ThisIsATest"));
-            Assert.IsTrue("ThisIsATest".IsLike("ThisIsATest"));
-            Assert.IsTrue("ThisIsATest".IsLike("ThisIsATest"));
-        }
+        Assert.IsTrue(@string.IsLike(isLike));
+    }
 
-        [TestMethod]
-        public void IsLike_GivenLikeStringWithSpaces_ReturnsTrue()
-        {
-            const string output = @"*  3";
+    [TestMethod]
+    [DataRow("*3")]
+    [DataRow("* 3")]
+    public void IsLike_GivenLikeStringWithSpaces_ReturnsTrue(string isLike)
+    {
+        const string output = @"*  3";
 
-            Assert.IsTrue(output.IsLike("*3"), "First");
-            Assert.IsTrue(output.IsLike("* 3"), "Second");
-        }
+        Assert.IsTrue(output.IsLike(isLike));
+    }
 
-        [TestMethod]
-        public void IsLike_GivenLikeStringWithEscape_ReturnsTrue()
-        {
-            const string output = @"*3";
+    [TestMethod]
+    public void IsLike_GivenLikeStringWithEscape_ReturnsTrue()
+    {
+        const string output = @"*3";
 
-            Assert.IsTrue(output.IsLike("\\*3", '\\'));
-        }
+        Assert.IsTrue(output.IsLike("\\*3", '\\'));
+    }
 
-        [TestMethod]
-        public void IsLike_GivenLikeStringWithOverrideEscape_ReturnsTrue()
-        {
-            const string output = @"*3";
+    [TestMethod]
+    public void IsLike_GivenLikeStringWithOverrideEscape_ReturnsTrue()
+    {
+        const string output = @"*3";
 
-            Assert.IsTrue(output.IsLike("`*3", '`'));
-        }
+        Assert.IsTrue(output.IsLike("`*3", '`'));
+    }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void IsLike_GivenInvalideEscapeCharacter_Throws()
-        {
-            const string output = @"*3";
+    [TestMethod]
+    [ExpectedException(typeof(ArgumentException))]
+    public void IsLike_GivenInvalideEscapeCharacter_Throws()
+    {
+        const string output = @"*3";
 
-            Assert.IsTrue(output.IsLike(@"\3", '\\'));
-        }
+        Assert.IsTrue(output.IsLike(@"\3", '\\'));
     }
 }
