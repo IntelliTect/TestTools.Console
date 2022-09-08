@@ -1,5 +1,7 @@
 ﻿using System.CodeDom;
 using System.CodeDom.Compiler;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace IntelliTect.TestTools.Console;
 
@@ -42,6 +44,26 @@ public static class ConsoleAssert
         NormalizeOptions normalizeOptions = NormalizeOptions.Default)
     {
         return Expect(expected,
+            action,
+            (left, right) => left == right,
+            normalizeOptions);
+    }
+
+    /// <summary>
+    /// Performs a unit test on a console-based method. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double 
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run</param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    public static Task<string> ExpectAsync(string expected,
+        Func<Task> action,
+        NormalizeOptions normalizeOptions = NormalizeOptions.Default)
+    {
+        return ExpectAsync(expected,
             action,
             (left, right) => left == right,
             normalizeOptions);
@@ -91,6 +113,30 @@ public static class ConsoleAssert
         params string[] args)
     {
         return Expect(expected,
+            () => action(args),
+            (left, right) => left == right,
+            normalizeOptions);
+    }
+
+    /// <summary>
+    /// <para>
+    /// Performs a unit test on a console-based method. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </para>
+    /// </summary>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run</param>
+    /// <param name="args">Args to pass to the function.</param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    public static Task<string> ExpectAsync(string expected,
+        Func<string[], Task> action,
+        NormalizeOptions normalizeOptions = NormalizeOptions.Default,
+        params string[] args)
+    {
+        return ExpectAsync(expected,
             () => action(args),
             (left, right) => left == right,
             normalizeOptions);
@@ -202,6 +248,30 @@ public static class ConsoleAssert
             normalizeOptions, equivalentOperatorErrorMessage);
     }
 
+    /// <summary>
+    /// Performs a unit test on a console-based method. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run</param>
+    /// <param name="comparisonOperator"></param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
+    private static Task<string> ExpectAsync(
+        string expected, Func<Task> action, Func<string, string, bool> comparisonOperator,
+        NormalizeOptions normalizeOptions = NormalizeOptions.Default,
+        string equivalentOperatorErrorMessage = "Values are not equal")
+    {
+        (string input, string output) = Parse(expected);
+
+        return ExecuteAsync(input, output, action,
+            (left, right) => comparisonOperator(left, right),
+            normalizeOptions, equivalentOperatorErrorMessage);
+    }
+
     private static readonly Func<string, string, bool> LikeOperator =
         (expected, output) => output.IsLike(expected);
 
@@ -215,7 +285,7 @@ public static class ConsoleAssert
     /// including both input and output</param>
     /// <param name="escapeCharacter"></param>
     /// <param name="action">Method to be run</param>
-		[Obsolete]
+    [Obsolete]
     public static string ExpectLike(string expected, char escapeCharacter, Action action)
     {
         return Expect(expected, action, (pattern, output) => output.IsLike(pattern, escapeCharacter));
@@ -260,6 +330,29 @@ public static class ConsoleAssert
         char escapeCharacter = '\\')
     {
         return Expect(expected,
+            action,
+            (pattern, output) => output.IsLike(pattern, escapeCharacter),
+            normalizeLineEndings,
+            "The values are not like (using wildcards) each other");
+    }
+
+    /// <summary>
+    /// Performs a unit test on a console-based method. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run</param>
+    /// <param name="normalizeLineEndings">Whether differences in line ending styles should be ignored.</param>
+    /// <param name="escapeCharacter">The escape character for the wildcard caracters.  Default is '\'.</param>
+    public static Task<string> ExpectLikeAsync(string expected,
+        Func<Task> action,
+        NormalizeOptions normalizeLineEndings = NormalizeOptions.Default,
+        char escapeCharacter = '\\')
+    {
+        return ExpectAsync(expected,
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
@@ -314,6 +407,38 @@ public static class ConsoleAssert
     {
         string output = Execute(givenInput, action);
 
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage);
+    }
+
+    /// <summary>
+    /// Executes the unit test while providing console input.
+    /// </summary>
+    /// <param name="givenInput">Input which will be given</param>
+    /// <param name="expectedOutput">The expected output</param>
+    /// <param name="action">Action to be tested</param>
+    /// <param name="areEquivalentOperator">delegate for comparing the expected from actual output.</param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    private static async Task<string> ExecuteAsync(string givenInput,
+        string expectedOutput,
+        Func<Task> action,
+        Func<string, string, bool> areEquivalentOperator,
+        NormalizeOptions normalizeOptions = NormalizeOptions.Default,
+        string equivalentOperatorErrorMessage = "Values are not equal"
+    )
+    {
+        string output = await ExecuteAsync(givenInput, action);
+
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage);
+    }
+
+    private static string CompareOutput(
+        string output,
+        string expectedOutput,
+        NormalizeOptions normalizeOptions,
+        Func<string, string, bool> areEquivalentOperator,
+        string equivalentOperatorErrorMessage)
+    {
         if ((normalizeOptions & NormalizeOptions.NormalizeLineEndings) != 0)
         {
             output = NormalizeLineEndings(output, true);
@@ -347,7 +472,7 @@ public static class ConsoleAssert
         }
     }
 
-    private static readonly object ExecuteLock = new object();
+    private static SemaphoreSlim AsyncLock = new(1, 1);
 
     /// <summary>
     /// Executes the <paramref name="action"/> while providing console input.
@@ -356,8 +481,9 @@ public static class ConsoleAssert
     /// <param name="action">The action to run.</param>
     public static string Execute(string givenInput, Action action)
     {
-        lock (ExecuteLock)
+        try
         {
+            AsyncLock.Wait();
             TextWriter savedOutputStream = System.Console.Out;
             TextReader savedInputStream = System.Console.In;
             try
@@ -381,6 +507,50 @@ public static class ConsoleAssert
                 System.Console.SetOut(savedOutputStream);
                 System.Console.SetIn(savedInputStream);
             }
+        }
+        finally
+        {
+            AsyncLock.Release();
+        }
+    }
+    /// <summary>
+    /// Executes the <paramref name="action"/> while providing console input.
+    /// </summary>
+    /// <param name="givenInput">Input which will be given at the console when prompted</param>
+    /// <param name="action">The action to run</param>
+    /// <returns></returns>
+    public static async Task<string> ExecuteAsync(string givenInput, Func<Task> action)
+    {
+        try
+        {
+            AsyncLock.Wait();
+            TextWriter savedOutputStream = System.Console.Out;
+            TextReader savedInputStream = System.Console.In;
+            try
+            {
+                string output;
+                using (TextWriter writer = new StringWriter())
+                using (TextReader reader = new StringReader(string.IsNullOrWhiteSpace(givenInput) ? "" : givenInput))
+                {
+                    System.Console.SetOut(writer);
+
+                    System.Console.SetIn(reader);
+                    await action();
+
+                    output = writer.ToString();
+                }
+
+                return output;
+            }
+            finally
+            {
+                System.Console.SetOut(savedOutputStream);
+                System.Console.SetIn(savedInputStream);
+            }
+        }
+        finally
+        {
+            AsyncLock.Release();
         }
     }
 
@@ -437,16 +607,14 @@ public static class ConsoleAssert
     private static string CSharpStringEncode(string text)
     {
         string result;
-        using (var writer = new StringWriter())
-        using (var provider = CodeDomProvider.CreateProvider("CSharp"))
-        {
-            provider.GenerateCodeFromExpression(new CodePrimitiveExpression(text), writer,
-                new CodeGeneratorOptions() { BlankLinesBetweenMembers = false });
-            result = writer.ToString();
+        using var writer = new StringWriter();
+        using var provider = CodeDomProvider.CreateProvider("CSharp");
+        provider.GenerateCodeFromExpression(new CodePrimitiveExpression(text), writer,
+            new CodeGeneratorOptions() { BlankLinesBetweenMembers = false });
+        result = writer.ToString();
 
-            // Remove extra text added during formatting (..realtext" + "realtext..)
-            return Regex.Replace(result, @"""\s+\+\s+""", "");
-        }
+        // Remove extra text added during formatting (..realtext" + "realtext..)
+        return Regex.Replace(result, @"""\s+\+\s+""", "");
     }
 
     private static char CSharpStringEncode(char input) => CSharpStringEncode(input.ToString())[0];
@@ -460,7 +628,7 @@ public static class ConsoleAssert
     /// What a user would see in the console, but with input/output tokens.
     /// </param>
     /// <returns>[0] Input, and [1] Output</returns>
-    private static (string Input, string Output) Parse(string view)  // TODO: Return Tuple instead.
+    private static (string Input, string Output) Parse(string view)
     {
         // Note: This could definitely be optimized, wanted to try it for experience. RegEx perhaps?
         bool isInput = false;

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace IntelliTect.TestTools.Console.Tests;
 
@@ -27,12 +28,46 @@ public class ConsoleAssertTests
     }
 
     [TestMethod]
+    public async Task ConsoleTester_SampleAsync_InigoMontoya()
+    {
+        const string view =
+@"First name: <<Inigo
+>>Last name: <<Montoya
+>>Hello, Inigo Montoya.";
+
+        await ConsoleAssert.ExpectAsync(view,
+        async () =>
+        {
+            await Task.Yield();
+            System.Console.Write("First name: ");
+            string fname = System.Console.ReadLine();
+
+            System.Console.Write("Last name: ");
+            string lname = System.Console.ReadLine();
+
+            System.Console.Write("Hello, {0} {1}.", fname, lname);
+        });
+    }
+
+    [TestMethod]
     public void ConsoleTester_HelloWorld_NoInput()
     {
         const string view = "Hello World";
 
         ConsoleAssert.Expect(view, () =>
         {
+            System.Console.Write("Hello World");
+        }, NormalizeOptions.None);
+    }
+
+    [TestMethod]
+    public async Task ConsoleTester_HelloWorldAsync_NoInput()
+    {
+        const string view = "Hello World";
+
+        await ConsoleAssert.ExpectAsync(view, async () =>
+        {
+            await Task.Yield();
             System.Console.Write("Hello World");
         }, NormalizeOptions.None);
     }
@@ -59,10 +94,13 @@ public class ConsoleAssertTests
         string expected,
         bool stripVT100)
     {
+        NormalizeOptions options = NormalizeOptions.NormalizeLineEndings;
+        if (stripVT100) options |= NormalizeOptions.StripAnsiEscapeCodes;
+        
         ConsoleAssert.Expect(expected, () =>
         {
             System.Console.WriteLine(input);
-        });
+        }, options);
     }
 
     [TestMethod]
@@ -168,7 +206,7 @@ Reply from ::1: time*";
 
         ConsoleAssert.ExecuteProcess(
             expected,
-            "ping", pingArgs, out string standardOutput, out _);
+            "ping", pingArgs, out string _, out _);
     }
 
     [TestMethod]
@@ -177,7 +215,19 @@ Reply from ::1: time*";
         const string expected = "(abstract, 1)\n(abstract, 2)\n\n";
         const string output = "(abstract, 1)\r\n(abstract, 2)\r\n";
 
-        IntelliTect.TestTools.Console.ConsoleAssert.ExpectLike(expected, () =>
+        ConsoleAssert.ExpectLike(expected, () =>
+        {
+            System.Console.WriteLine(output);
+        });
+    }
+
+    [TestMethod]
+    public void ExecuteAsync_GivenVariableCRLFWithNLComparedToCRNL_Success()
+    {
+        const string expected = "(abstract, 1)\n(abstract, 2)\n\n";
+        const string output = "(abstract, 1)\r\n(abstract, 2)\r\n";
+
+        ConsoleAssert.ExpectLike(expected, () =>
         {
             System.Console.WriteLine(output);
         });
