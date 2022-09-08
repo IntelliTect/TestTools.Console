@@ -7,7 +7,6 @@ public class StringExtensionsTests
     [DataRow("ThisIsATest", "ThisIsATest")]
     [DataRow("ThisIsATest", "This*Test")]
     [DataRow("ThisIsTestNumber 3", "ThisIsTestNumber* 3")]
-    [DataRow("ThisIsATest", "ThisIsTestNumber* 3")]
     public void IsLike_GivenLikeString_ReturnsTrue(string @string, string isLike)
     {
         Assert.IsTrue(@string.IsLike(isLike));
