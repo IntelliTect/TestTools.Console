@@ -360,6 +360,29 @@ public static class ConsoleAssert
     }
 
     /// <summary>
+    /// Performs a unit test on a console-based method. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <param name="expectedRegex">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run</param>
+    /// <param name="normalizeLineEndings">Whether differences in line ending styles should be ignored.</param>
+    /// <param name="escapeCharacter">The escape character for the wildcard caracters.  Default is '\'.</param>
+    public static string ExpectLikeRegex(string expectedRegex,
+        Action action,
+        NormalizeOptions normalizeLineEndings = NormalizeOptions.Default,
+        char escapeCharacter = '\\')
+    {
+        return Expect(expectedRegex,
+            action,
+            (pattern, output) => Regex.IsMatch(output, pattern),
+            normalizeLineEndings,
+            "The values are not like (using wildcards) each other");
+    }
+
+    /// <summary>
     /// Normalizes all line endings of the input string into <see cref="Environment.NewLine" />
     /// </summary>
     /// <param name="input">The input to normalize</param>
@@ -406,7 +429,6 @@ public static class ConsoleAssert
     )
     {
         string output = Execute(givenInput, action);
-
         return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage);
     }
 

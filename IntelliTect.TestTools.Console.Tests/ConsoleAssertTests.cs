@@ -73,6 +73,26 @@ public class ConsoleAssertTests
     }
 
     [TestMethod]
+    [DataRow("The Chicago Cubs", "^The")]
+    [DataRow("This is the end", "end$")]
+    [DataRow("The end", "^The end$")]
+    [DataRow("Can you hear me roar?", "roar")]
+    [DataRow("abcsdfkjalsdjf", "abc*")]
+    [DataRow("abcccc", "abc+")]
+    [DataRow("ab", "abc?")]
+    [DataRow("abc", "abc?")]
+    [DataRow(@"Error Hello World
+Hello World", @"^Error (Hello World{Environment.NewLine})+$")]
+    public void ConsoleTester_HelloWorldRegex_Input(string output, string pattern)
+    {
+        pattern = pattern.Replace("{Environment.NewLine}", $"{Environment.NewLine}");
+        ConsoleAssert.ExpectLikeRegex(pattern, () =>
+        {
+            System.Console.WriteLine(output);
+        });
+    }
+
+    [TestMethod]
     public void ConsoleTester_HelloWorld_TrimLF()
     {
         const string view = "Hello World\n";
