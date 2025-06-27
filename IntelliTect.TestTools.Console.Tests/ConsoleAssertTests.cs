@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace IntelliTect.TestTools.Console.Tests;
@@ -196,7 +196,10 @@ Reply from ::1: time*";
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             expected = $@"PING *(* (::1)) 56 data bytes
-64 bytes from * (::1): icmp_seq=1 ttl=64 time=* ms*";
+64 bytes from * (::1): icmp_seq=1 ttl=64 time=* ms*
+*--- localhost ping statistics ---*
+* packets transmitted, * received, *% packet loss, time *ms
+rtt min/avg/max/mdev = */*/*/* ms*";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
