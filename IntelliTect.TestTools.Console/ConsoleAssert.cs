@@ -822,6 +822,27 @@ public static class ConsoleAssert
     public static Process ExecuteProcess(string expected, string fileName, string args,
         out string standardOutput, out string standardError, string workingDirectory = null)
     {
+        return ExecuteProcess(expected, fileName, args, out standardOutput, out standardError, workingDirectory, DiffOptions.Default);
+    }
+
+    /// <summary>
+    /// Performs a unit test on a console-based executable with enhanced diff options. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="fileName">The filename or executable to call to generate output</param>
+    /// <param name="args">command line arguments</param>
+    /// <param name="standardOutput">The output from the process to the standard output stream</param>
+    /// <param name="standardError">The output from the process to the standard error stream</param>
+    /// <param name="workingDirectory">The working directory to start the process in</param>
+    /// <param name="diffOptions">Options for controlling diff output behavior</param>
+    /// <returns>The process that was executed</returns>
+    public static Process ExecuteProcess(string expected, string fileName, string args,
+        out string standardOutput, out string standardError, string workingDirectory, DiffOptions diffOptions)
+    {
         ProcessStartInfo processStartInfo = new ProcessStartInfo(fileName, args)
         {
             //processStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -835,7 +856,7 @@ public static class ConsoleAssert
         process.WaitForExit();
         standardOutput = process.StandardOutput.ReadToEnd();
         standardError = process.StandardError.ReadToEnd();
-        AssertExpectation(expected, standardOutput, (left, right) => LikeOperator(left, right), "The values are not like (using wildcards) each other");
+        AssertExpectation(expected, standardOutput, (left, right) => LikeOperator(left, right), "The values are not like (using wildcards) each other", diffOptions);
         return process;
     }
 }

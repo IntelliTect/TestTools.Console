@@ -111,8 +111,21 @@ internal class WildcardDiffAnalyzer
 
         if (isMatch)
         {
-            // Extract what each wildcard matched
-            result.WildcardMatches = ExtractWildcardMatches(expectedPattern, actualLine, escapeCharacter);
+            // Try to extract what each wildcard matched, but if it fails, just indicate matches exist
+            try
+            {
+                result.WildcardMatches = ExtractWildcardMatches(expectedPattern, actualLine, escapeCharacter);
+            }
+            catch (Exception)
+            {
+                // If extraction fails, just count the wildcards and provide placeholder text
+                int wildcardCount = CountWildcards(expectedPattern, escapeCharacter);
+                result.WildcardMatches = new List<string>();
+                for (int i = 0; i < wildcardCount; i++)
+                {
+                    result.WildcardMatches.Add("<matched content>");
+                }
+            }
         }
         else
         {
@@ -123,6 +136,22 @@ internal class WildcardDiffAnalyzer
     }
 
     /// <summary>
+    /// Counts the number of wildcards in a pattern.
+    /// </summary>
+    private static int CountWildcards(string pattern, char escapeCharacter)
+    {
+        int count = 0;
+        for (int i = 0; i < pattern.Length; i++)
+        {
+            if (pattern[i] == '*' && (i == 0 || pattern[i - 1] != escapeCharacter))
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /// <summary>
     /// Extracts what each wildcard (*) in the pattern matched in the actual string.
     /// </summary>
     private static List<string> ExtractWildcardMatches(string pattern, string actual, char escapeCharacter)
@@ -130,10 +159,9 @@ internal class WildcardDiffAnalyzer
         var matches = new List<string>();
         
         // Convert wildcard pattern to regex to capture groups
-        var regexPattern = ConvertWildcardToRegex(pattern, escapeCharacter);
-        
         try
         {
+            var regexPattern = ConvertWildcardToRegex(pattern, escapeCharacter);
             var regex = new Regex(regexPattern, RegexOptions.Singleline);
             var match = regex.Match(actual);
             
@@ -145,21 +173,20 @@ internal class WildcardDiffAnalyzer
                     matches.Add(match.Groups[i].Value);
                 }
             }
+            else
+            {
+                // Fallback: count wildcards and provide placeholders
+                int wildcardCount = CountWildcards(pattern, escapeCharacter);
+                for (int i = 0; i < wildcardCount; i++)
+                {
+                    matches.Add("<matched content>");
+                }
+            }
         }
         catch (Exception)
         {
             // If regex conversion fails, fall back to basic tracking
-            // Count wildcards in pattern
-            int wildcardCount = 0;
-            for (int i = 0; i < pattern.Length; i++)
-            {
-                if (pattern[i] == '*' && (i == 0 || pattern[i - 1] != escapeCharacter))
-                {
-                    wildcardCount++;
-                }
-            }
-            
-            // Add placeholder matches
+            int wildcardCount = CountWildcards(pattern, escapeCharacter);
             for (int i = 0; i < wildcardCount; i++)
             {
                 matches.Add("<matched content>");
