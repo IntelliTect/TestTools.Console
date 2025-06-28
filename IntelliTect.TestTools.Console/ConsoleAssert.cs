@@ -260,6 +260,32 @@ public static class ConsoleAssert
     /// <param name="comparisonOperator"></param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
+    /// <param name="diffOptions">Options for controlling diff output behavior</param>
+    private static string Expect(
+        string expected, Action action, Func<string, string, bool> comparisonOperator,
+        NormalizeOptions normalizeOptions,
+        string equivalentOperatorErrorMessage,
+        DiffOptions diffOptions)
+    {
+        (string input, string output) = Parse(expected);
+
+        return Execute(input, output, action,
+            (left, right) => comparisonOperator(left, right),
+            normalizeOptions, equivalentOperatorErrorMessage, diffOptions);
+    }
+
+    /// <summary>
+    /// Performs a unit test on a console-based method. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run</param>
+    /// <param name="comparisonOperator"></param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
     private static Task<string> ExpectAsync(
         string expected, Func<Task> action, Func<string, string, bool> comparisonOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
@@ -334,6 +360,32 @@ public static class ConsoleAssert
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
             "The values are not like (using wildcards) each other");
+    }
+
+    /// <summary>
+    /// Performs a unit test on a console-based method with enhanced wildcard diff output. A "view" of
+    /// what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run</param>
+    /// <param name="diffOptions">Options for controlling diff output behavior</param>
+    /// <param name="normalizeLineEndings">Options to normalize input and expected output</param>
+    /// <param name="escapeCharacter">The escape character for the wildcard caracters.  Default is '\'.</param>
+    public static string ExpectLike(string expected,
+        Action action,
+        DiffOptions diffOptions,
+        NormalizeOptions normalizeLineEndings = NormalizeOptions.Default,
+        char escapeCharacter = '\\')
+    {
+        return Expect(expected,
+            action,
+            (pattern, output) => output.IsLike(pattern, escapeCharacter),
+            normalizeLineEndings,
+            "The values are not like (using wildcards) each other",
+            diffOptions);
     }
 
     /// <summary>
@@ -419,6 +471,29 @@ public static class ConsoleAssert
     /// <param name="areEquivalentOperator">delegate for comparing the expected from actual output.</param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="diffOptions">Options for controlling diff output behavior</param>
+    private static string Execute(string givenInput,
+        string expectedOutput,
+        Action action,
+        Func<string, string, bool> areEquivalentOperator,
+        NormalizeOptions normalizeOptions,
+        string equivalentOperatorErrorMessage,
+        DiffOptions diffOptions)
+    {
+        string output = Execute(givenInput, action);
+
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage, diffOptions);
+    }
+
+    /// <summary>
+    /// Executes the unit test while providing console input.
+    /// </summary>
+    /// <param name="givenInput">Input which will be given</param>
+    /// <param name="expectedOutput">The expected output</param>
+    /// <param name="action">Action to be tested</param>
+    /// <param name="areEquivalentOperator">delegate for comparing the expected from actual output.</param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
     private static async Task<string> ExecuteAsync(string givenInput,
         string expectedOutput,
         Func<Task> action,
@@ -439,6 +514,17 @@ public static class ConsoleAssert
         Func<string, string, bool> areEquivalentOperator,
         string equivalentOperatorErrorMessage)
     {
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage, DiffOptions.Default);
+    }
+
+    private static string CompareOutput(
+        string output,
+        string expectedOutput,
+        NormalizeOptions normalizeOptions,
+        Func<string, string, bool> areEquivalentOperator,
+        string equivalentOperatorErrorMessage,
+        DiffOptions diffOptions)
+    {
         if ((normalizeOptions & NormalizeOptions.NormalizeLineEndings) != 0)
         {
             output = NormalizeLineEndings(output, true);
@@ -451,7 +537,7 @@ public static class ConsoleAssert
             expectedOutput = StripAnsiEscapeCodes(expectedOutput);
         }
 
-        AssertExpectation(expectedOutput, output, areEquivalentOperator, equivalentOperatorErrorMessage);
+        AssertExpectation(expectedOutput, output, areEquivalentOperator, equivalentOperatorErrorMessage, diffOptions);
         return output;
     }
 
@@ -465,10 +551,24 @@ public static class ConsoleAssert
     private static void AssertExpectation(string expectedOutput, string output, Func<string, string, bool> areEquivalentOperator,
         string equivalentOperatorErrorMessage = null)
     {
+        AssertExpectation(expectedOutput, output, areEquivalentOperator, equivalentOperatorErrorMessage, DiffOptions.Default);
+    }
+
+    /// <summary>
+    /// Asserts whether the values are equivalent according to the <paramref name="areEquivalentOperator"/>"/>
+    /// </summary>
+    /// <param name="expectedOutput">The expected value of the output.</param>
+    /// <param name="output">The actual value output.</param>
+    /// <param name="areEquivalentOperator">The operator used to compare equivalency.</param>
+    /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="diffOptions">Options for controlling diff output behavior</param>
+    private static void AssertExpectation(string expectedOutput, string output, Func<string, string, bool> areEquivalentOperator,
+        string equivalentOperatorErrorMessage, DiffOptions diffOptions)
+    {
         bool failTest = !areEquivalentOperator(expectedOutput, output);
         if (failTest)
         {
-            throw new Exception(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage));
+            throw new Exception(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage, diffOptions));
         }
     }
 
@@ -557,6 +657,23 @@ public static class ConsoleAssert
 
     private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null)
     {
+        return GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage, DiffOptions.Default);
+    }
+
+    private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage, DiffOptions diffOptions)
+    {
+        // Check if enhanced wildcard diff is enabled and the error message suggests wildcard usage
+        bool isWildcardError = equivalentOperatorErrorMessage != null && 
+                               equivalentOperatorErrorMessage.ToLowerInvariant().Contains("wildcard");
+        
+        if ((diffOptions & DiffOptions.EnhancedWildcardDiff) != 0 && isWildcardError)
+        {
+            // Use enhanced wildcard diff output
+            var diffResult = WildcardDiffAnalyzer.AnalyzeDiff(expectedOutput, output);
+            return WildcardDiffFormatter.FormatEnhancedDiff(diffResult, equivalentOperatorErrorMessage);
+        }
+
+        // Fall back to original implementation
         string result = "";
 
         result += string.Join(Environment.NewLine, $"{equivalentOperatorErrorMessage}:- ",
