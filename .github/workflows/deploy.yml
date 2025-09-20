@@ -15,13 +15,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: | 
-            3.1.x
-            6.x
+        global-json-file: global.json
     - name: Restore dependencies
       run: dotnet restore
     - name: Set Version
@@ -45,7 +43,7 @@ jobs:
       run: dotnet pack -p:PackageVersion=${{ env.nugetVersion }} --configuration Release -o ${{github.workspace}}/TestTools.ConsolePack --no-build 
     - name: Upload Artifacts
       if: startsWith(github.ref, 'refs/tags/v')
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: NuGet
         path: ${{github.workspace}}/TestTools.ConsolePack
@@ -58,7 +56,7 @@ jobs:
       name: 'Production'
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: NuGet
       - name: Push NuGet
