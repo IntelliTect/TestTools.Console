@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -9,7 +9,7 @@
     
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <Authors>Mark Michaelis</Authors>
+    <Authors>Mark Michaelis, Benjamin Michaelis</Authors>
     
     <PackageTags>IntelliTect, TestTools, Console, TestAPI</PackageTags>
     
@@ -26,6 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.CodeDom" Version="9.0.9" />
+    <PackageReference Include="System.CodeDom" />
   </ItemGroup>
 </Project>
