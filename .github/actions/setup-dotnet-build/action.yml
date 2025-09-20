@@ -1,0 +1,33 @@
+name: 'Setup .NET and Build'
+description: 'Sets up .NET environment, restores dependencies, and builds the project'
+inputs:
+  dotnet-version:
+    description: '.NET versions to install'
+    required: false
+    default: |
+      3.1.x
+      6.x
+  configuration:
+    description: 'Build configuration'
+    required: false
+    default: 'Release'
+  build-args:
+    description: 'Additional build arguments'
+    required: false
+    default: '-p:ContinuousIntegrationBuild=True --no-restore'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      shell: pwsh
+      
+    - name: Build
+      run: dotnet build --configuration ${{ inputs.configuration }} ${{ inputs.build-args }}
+      shell: pwsh
