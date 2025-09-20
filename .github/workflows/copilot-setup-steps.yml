@@ -28,7 +28,7 @@ jobs:
     - name: Setup .NET and Build
       uses: ./.github/actions/setup-dotnet-build
       with:
-        configuration: 'Release' 
+        configuration: 'Debug' 
       
     - name: Setup Copilot environment
       run: |
