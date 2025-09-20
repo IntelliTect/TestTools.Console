@@ -1,11 +1,6 @@
 name: 'Setup .NET and Build'
 description: 'Sets up .NET environment, restores dependencies, and builds the project'
 inputs:
-  dotnet-version:
-    description: '.NET versions to install'
-    required: false
-    default: |
-      9.x
   configuration:
     description: 'Build configuration'
     required: false
@@ -21,7 +16,6 @@ runs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ inputs.dotnet-version }}
         
     - name: Restore dependencies
       run: dotnet restore
