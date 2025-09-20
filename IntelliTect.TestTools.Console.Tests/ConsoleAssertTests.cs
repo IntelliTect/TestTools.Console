@@ -195,11 +195,8 @@ Reply from ::1: time*";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            expected = $@"PING *(* (::1)) 56 data bytes
-64 bytes from * (::1): icmp_seq=1 ttl=64 time=* ms*
-*--- localhost ping statistics ---*
-* packets transmitted, * received, *% packet loss, time *ms
-rtt min/avg/max/mdev = */*/*/* ms*";
+            expected = $@"PING *(::1) 56 data bytes
+64 bytes from * (::1): icmp_seq=1 ttl=64 time=* ms*";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {

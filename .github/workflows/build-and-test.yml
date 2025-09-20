@@ -20,14 +20,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build -p:ContinuousIntegrationBuild=True --no-restore --configuration Release
+    - name: Setup .NET and Build
+      uses: ./.github/actions/setup-dotnet-build
     - name: Test
       run: dotnet test --no-build --configuration Release --verbosity normal
       
