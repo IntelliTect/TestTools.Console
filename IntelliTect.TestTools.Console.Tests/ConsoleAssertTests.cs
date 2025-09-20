@@ -145,7 +145,7 @@ End";
     {
         const string view = "Hello World\r\n";
 
-        Assert.ThrowsException<Exception>(() =>
+        Assert.ThrowsExactly<Exception>(() =>
         {
             ConsoleAssert.Expect(view, () =>
             {
@@ -160,7 +160,7 @@ End";
     [DataRow("+hello+world+")]
     public void ConsoleTester_OutputIncludesPluses_PlusesAreNotStripped(string consoleInput)
     {
-        Exception exception = Assert.ThrowsException<Exception>(() =>
+        Exception exception = Assert.ThrowsExactly<Exception>(() =>
         {
             ConsoleAssert.Expect(consoleInput, () =>
             {

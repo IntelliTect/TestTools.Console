@@ -39,11 +39,13 @@ public class StringExtensionsTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentException))]
     public void IsLike_GivenInvalideEscapeCharacter_Throws()
     {
         const string output = @"*3";
 
-        Assert.IsTrue(output.IsLike(@"\3", '\\'));
+        Assert.ThrowsExactly<ArgumentException>(() =>
+        {
+            output.IsLike(@"\3", '\\');
+        });
     }
 }
