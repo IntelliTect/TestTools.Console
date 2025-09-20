@@ -5,8 +5,7 @@ inputs:
     description: '.NET versions to install'
     required: false
     default: |
-      3.1.x
-      6.x
+      9.x
   configuration:
     description: 'Build configuration'
     required: false
