@@ -195,7 +195,7 @@ Reply from ::1: time*";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            expected = $@"PING *(* (::1)) 56 data bytes
+            expected = $@"PING *(::1) 56 data bytes
 64 bytes from * (::1): icmp_seq=1 ttl=64 time=* ms*";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
