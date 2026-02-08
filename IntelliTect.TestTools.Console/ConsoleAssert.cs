@@ -468,7 +468,8 @@ public static class ConsoleAssert
         bool failTest = !areEquivalentOperator(expectedOutput, output);
         if (failTest)
         {
-            // Check if we're using wildcard matching
+            // Check if we're using wildcard matching by examining the error message
+            // Wildcard matching operations use the specific message: "The values are not like (using wildcards) each other"
             bool isWildcardMatching = equivalentOperatorErrorMessage?.Contains("wildcard") == true ||
                                       equivalentOperatorErrorMessage?.Contains("like") == true;
             
