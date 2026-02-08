@@ -12,7 +12,7 @@ public class EnhancedErrorMessageTests
         // Arrange - pattern with wildcards that will NOT match
         string expected = "PING *(::1) 56 data bytes\n64 bytes from *";
         
-        // Act & Assert
+        // Act & Assert - ConsoleAssert throws System.Exception on mismatch
         Exception exception = Assert.ThrowsExactly<Exception>(() =>
         {
             ConsoleAssert.ExpectLike(expected, () =>

@@ -11,8 +11,17 @@ internal static class WildcardMatchAnalyzer
     internal class LineMatchResult
     {
         public bool IsMatch { get; set; }
+        
+        /// <summary>
+        /// The expected line pattern. Null if this line exists in actual output but not in expected.
+        /// </summary>
         public string ExpectedLine { get; set; }
+        
+        /// <summary>
+        /// The actual line text. Null if this line exists in expected output but not in actual.
+        /// </summary>
         public string ActualLine { get; set; }
+        
         public List<WildcardMatch> WildcardMatches { get; set; } = new List<WildcardMatch>();
         public string Status => IsMatch ? "✅" : "❌";
     }
@@ -22,8 +31,16 @@ internal static class WildcardMatchAnalyzer
     /// </summary>
     internal class WildcardMatch
     {
-        public string Pattern { get; set; }  // e.g., "*" or "?"
-        public string MatchedText { get; set; }
+        /// <summary>
+        /// The wildcard pattern (e.g., "*", "?", or "[...]").
+        /// </summary>
+        public string Pattern { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// The text that was matched by this wildcard.
+        /// </summary>
+        public string MatchedText { get; set; } = string.Empty;
+        
         public int Position { get; set; }
     }
 
@@ -146,8 +163,9 @@ internal static class WildcardMatchAnalyzer
 
             return isMatch;
         }
-        catch
+        catch (ArgumentException)
         {
+            // Invalid pattern - treat as no match
             return false;
         }
     }

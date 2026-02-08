@@ -605,9 +605,13 @@ public static class ConsoleAssert
                 var matchResults = WildcardMatchAnalyzer.AnalyzeMatch(expectedOutput, output);
                 result += WildcardMatchAnalyzer.GenerateDetailedDiff(matchResults);
             }
-            catch
+            catch (ArgumentException)
             {
-                // If analysis fails, just use the basic output
+                // Pattern analysis failed - skip detailed diff
+            }
+            catch (InvalidOperationException)
+            {
+                // Analysis encountered an unexpected state - skip detailed diff
             }
         }
 
