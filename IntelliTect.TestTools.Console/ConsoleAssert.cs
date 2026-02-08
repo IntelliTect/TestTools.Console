@@ -739,22 +739,16 @@ public static class ConsoleAssert
         NormalizeOptions normalizeOptions = NormalizeOptions.Default)
         where TException : Exception
     {
-        TException caughtException = null;
         try
         {
             Expect(expected, action, normalizeOptions);
         }
         catch (TException ex)
         {
-            caughtException = ex;
+            return ex;
         }
 
-        if (caughtException == null)
-        {
-            throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
-        }
-
-        return caughtException;
+        throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
     }
 
     /// <summary>
@@ -774,21 +768,15 @@ public static class ConsoleAssert
         NormalizeOptions normalizeOptions = NormalizeOptions.Default)
         where TException : Exception
     {
-        TException caughtException = null;
         try
         {
             await ExpectAsync(expected, action, normalizeOptions);
         }
         catch (TException ex)
         {
-            caughtException = ex;
+            return ex;
         }
 
-        if (caughtException == null)
-        {
-            throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
-        }
-
-        return caughtException;
+        throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
     }
 }
