@@ -721,4 +721,74 @@ public static class ConsoleAssert
         AssertExpectation(expected, standardOutput, (left, right) => LikeOperator(left, right), "The values are not like (using wildcards) each other");
         return process;
     }
+
+    /// <summary>
+    /// Performs a unit test on a console-based method that is expected to throw an exception.
+    /// A "view" of what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double 
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <typeparam name="TException">The type of exception expected to be thrown</typeparam>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Method to be run that is expected to throw an exception</param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    /// <returns>The exception that was thrown</returns>
+    public static TException ExpectThrows<TException>(string expected,
+        Action action,
+        NormalizeOptions normalizeOptions = NormalizeOptions.Default)
+        where TException : Exception
+    {
+        TException caughtException = null;
+        try
+        {
+            Expect(expected, action, normalizeOptions);
+        }
+        catch (TException ex)
+        {
+            caughtException = ex;
+        }
+
+        if (caughtException == null)
+        {
+            throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
+        }
+
+        return caughtException;
+    }
+
+    /// <summary>
+    /// Performs a unit test on a console-based async method that is expected to throw an exception.
+    /// A "view" of what a user would see in their console is provided as a string,
+    /// where their input (including line-breaks) is surrounded by double 
+    /// less-than/greater-than signs, like so: "Input please: &lt;&lt;Input&gt;&gt;"
+    /// </summary>
+    /// <typeparam name="TException">The type of exception expected to be thrown</typeparam>
+    /// <param name="expected">Expected "view" to be seen on the console,
+    /// including both input and output</param>
+    /// <param name="action">Async method to be run that is expected to throw an exception</param>
+    /// <param name="normalizeOptions">Options to normalize input and expected output</param>
+    /// <returns>The exception that was thrown</returns>
+    public static async Task<TException> ExpectThrowsAsync<TException>(string expected,
+        Func<Task> action,
+        NormalizeOptions normalizeOptions = NormalizeOptions.Default)
+        where TException : Exception
+    {
+        TException caughtException = null;
+        try
+        {
+            await ExpectAsync(expected, action, normalizeOptions);
+        }
+        catch (TException ex)
+        {
+            caughtException = ex;
+        }
+
+        if (caughtException == null)
+        {
+            throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
+        }
+
+        return caughtException;
+    }
 }
