@@ -468,7 +468,12 @@ public static class ConsoleAssert
         bool failTest = !areEquivalentOperator(expectedOutput, output);
         if (failTest)
         {
-            throw new Exception(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage));
+            // Check if we're using wildcard matching by examining the error message
+            // Wildcard matching operations use the specific message: "The values are not like (using wildcards) each other"
+            bool isWildcardMatching = equivalentOperatorErrorMessage?.Contains("wildcard") == true ||
+                                      equivalentOperatorErrorMessage?.Contains("like") == true;
+            
+            throw new Exception(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage, isWildcardMatching));
         }
     }
 
@@ -555,7 +560,7 @@ public static class ConsoleAssert
     }
 
 
-    private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null)
+    private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null, bool isWildcardMatching = false)
     {
         string result = "";
 
@@ -592,6 +597,25 @@ public static class ConsoleAssert
                 }
             }
         }
+
+        // If wildcard matching is being used, add detailed line-by-line analysis
+        if (isWildcardMatching)
+        {
+            try
+            {
+                var matchResults = WildcardMatchAnalyzer.AnalyzeMatch(expectedOutput, output);
+                result += WildcardMatchAnalyzer.GenerateDetailedDiff(matchResults);
+            }
+            catch (ArgumentException)
+            {
+                // Pattern analysis failed - skip detailed diff
+            }
+            catch (InvalidOperationException)
+            {
+                // Analysis encountered an unexpected state - skip detailed diff
+            }
+        }
+
         return result;
     }
 
