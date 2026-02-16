@@ -214,3 +214,6 @@ ModelManifest.xml
 
 # Jetbrains
 .idea
+
+# GitHub Actions environment files
+:GITHUB_ENV
