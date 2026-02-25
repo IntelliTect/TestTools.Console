@@ -145,7 +145,7 @@ End";
     {
         const string view = "Hello World\r\n";
 
-        Assert.ThrowsExactly<Exception>(() =>
+        Assert.ThrowsExactly<ConsoleAssertException>(() =>
         {
             ConsoleAssert.Expect(view, () =>
             {
@@ -160,7 +160,7 @@ End";
     [DataRow("+hello+world+")]
     public void ConsoleTester_OutputIncludesPluses_PlusesAreNotStripped(string consoleInput)
     {
-        Exception exception = Assert.ThrowsExactly<Exception>(() =>
+        ConsoleAssertException exception = Assert.ThrowsExactly<ConsoleAssertException>(() =>
         {
             ConsoleAssert.Expect(consoleInput, () =>
             {
@@ -275,7 +275,7 @@ Reply from ::1: time*";
     {
         const string view = @"Hello World";
 
-        Exception exception = Assert.ThrowsExactly<Exception>(() =>
+        ConsoleAssertException exception = Assert.ThrowsExactly<ConsoleAssertException>(() =>
         {
             ConsoleAssert.ExpectThrows<FormatException>(view, () =>
             {
@@ -292,7 +292,7 @@ Reply from ::1: time*";
     {
         const string view = @"Hello World";
 
-        Exception exception = await Assert.ThrowsExactlyAsync<Exception>(async () =>
+        ConsoleAssertException exception = await Assert.ThrowsExactlyAsync<ConsoleAssertException>(async () =>
         {
             await ConsoleAssert.ExpectThrowsAsync<FormatException>(view, async () =>
             {
@@ -337,5 +337,22 @@ Reply from ::1: time*";
 
         Assert.IsNotNull(exception);
         StringAssert.Contains(exception.Message, "Test exception");
+    }
+
+    [TestMethod]
+    public void ExpectThrows_WithWrongExpectedOutput_ThrowsConsoleAssertException()
+    {
+        const string view = "Wrong output <<invalid\n>>Error: Invalid input";
+
+        Assert.ThrowsExactly<ConsoleAssertException>(() =>
+        {
+            ConsoleAssert.ExpectThrows<FormatException>(view, () =>
+            {
+                System.Console.Write("Enter a number: ");
+                string input = System.Console.ReadLine();
+                System.Console.Write("Error: Invalid input");
+                int.Parse(input);
+            });
+        });
     }
 }

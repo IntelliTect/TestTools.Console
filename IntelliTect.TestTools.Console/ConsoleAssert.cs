@@ -166,7 +166,7 @@ public static class ConsoleAssert
 
         if (!expectedReturn.Equals(@return))
         {
-            throw new Exception($"The value returned from {nameof(func)} ({@return}) was not the {nameof(expectedReturn)}({expectedReturn}) value.");
+            throw new ConsoleAssertException($"The value returned from {nameof(func)} ({@return}) was not the {nameof(expectedReturn)}({expectedReturn}) value.");
         }
     }
 
@@ -468,7 +468,7 @@ public static class ConsoleAssert
         bool failTest = !areEquivalentOperator(expectedOutput, output);
         if (failTest)
         {
-            throw new Exception(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage));
+            throw new ConsoleAssertException(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage));
         }
     }
 
@@ -739,16 +739,21 @@ public static class ConsoleAssert
         NormalizeOptions normalizeOptions = NormalizeOptions.Default)
         where TException : Exception
     {
-        try
-        {
-            Expect(expected, action, normalizeOptions);
-        }
-        catch (TException ex)
-        {
-            return ex;
-        }
+        (string input, string expectedOutput) = Parse(expected);
+        TException caughtException = null;
 
-        throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
+        string output = Execute(input, () =>
+        {
+            try { action(); }
+            catch (TException ex) { caughtException = ex; }
+        });
+
+        if (caughtException is null)
+            throw new ConsoleAssertException($"Expected exception of type {typeof(TException).Name} was not thrown.");
+
+        CompareOutput(output, expectedOutput, normalizeOptions, (l, r) => l == r, "Values are not equal");
+
+        return caughtException;
     }
 
     /// <summary>
@@ -768,15 +773,20 @@ public static class ConsoleAssert
         NormalizeOptions normalizeOptions = NormalizeOptions.Default)
         where TException : Exception
     {
-        try
-        {
-            await ExpectAsync(expected, action, normalizeOptions);
-        }
-        catch (TException ex)
-        {
-            return ex;
-        }
+        (string input, string expectedOutput) = Parse(expected);
+        TException caughtException = null;
 
-        throw new Exception($"Expected exception of type {typeof(TException).Name} was not thrown.");
+        string output = await ExecuteAsync(input, async () =>
+        {
+            try { await action(); }
+            catch (TException ex) { caughtException = ex; }
+        });
+
+        if (caughtException is null)
+            throw new ConsoleAssertException($"Expected exception of type {typeof(TException).Name} was not thrown.");
+
+        CompareOutput(output, expectedOutput, normalizeOptions, (l, r) => l == r, "Values are not equal");
+
+        return caughtException;
     }
 }
