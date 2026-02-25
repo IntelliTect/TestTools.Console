@@ -145,7 +145,7 @@ End";
     {
         const string view = "Hello World\r\n";
 
-        Assert.ThrowsExactly<Exception>(() =>
+        Assert.ThrowsExactly<ConsoleAssertException>(() =>
         {
             ConsoleAssert.Expect(view, () =>
             {
@@ -160,7 +160,7 @@ End";
     [DataRow("+hello+world+")]
     public void ConsoleTester_OutputIncludesPluses_PlusesAreNotStripped(string consoleInput)
     {
-        Exception exception = Assert.ThrowsExactly<Exception>(() =>
+        ConsoleAssertException exception = Assert.ThrowsExactly<ConsoleAssertException>(() =>
         {
             ConsoleAssert.Expect(consoleInput, () =>
             {
@@ -230,6 +230,129 @@ Reply from ::1: time*";
         ConsoleAssert.ExpectLike(expected, () =>
         {
             System.Console.WriteLine(output);
+        });
+    }
+
+    [TestMethod]
+    public void ExpectThrows_WhenExceptionIsThrown_CapturesException()
+    {
+        const string view = @"Enter a number: <<invalid
+>>Error: Invalid input";
+
+        FormatException exception = ConsoleAssert.ExpectThrows<FormatException>(view, () =>
+        {
+            System.Console.Write("Enter a number: ");
+            string input = System.Console.ReadLine();
+            System.Console.Write("Error: Invalid input");
+            int.Parse(input); // This will throw FormatException
+        });
+
+        Assert.IsNotNull(exception);
+        Assert.IsInstanceOfType<FormatException>(exception);
+    }
+
+    [TestMethod]
+    public async Task ExpectThrowsAsync_WhenExceptionIsThrown_CapturesException()
+    {
+        const string view = @"Enter a number: <<invalid
+>>Error: Invalid input";
+
+        FormatException exception = await ConsoleAssert.ExpectThrowsAsync<FormatException>(view, async () =>
+        {
+            await Task.Yield();
+            System.Console.Write("Enter a number: ");
+            string input = System.Console.ReadLine();
+            System.Console.Write("Error: Invalid input");
+            int.Parse(input); // This will throw FormatException
+        });
+
+        Assert.IsNotNull(exception);
+        Assert.IsInstanceOfType<FormatException>(exception);
+    }
+
+    [TestMethod]
+    public void ExpectThrows_WhenNoExceptionIsThrown_ThrowsException()
+    {
+        const string view = @"Hello World";
+
+        ConsoleAssertException exception = Assert.ThrowsExactly<ConsoleAssertException>(() =>
+        {
+            ConsoleAssert.ExpectThrows<FormatException>(view, () =>
+            {
+                System.Console.Write("Hello World");
+                // No exception thrown
+            });
+        });
+
+        StringAssert.Contains(exception.Message, "Expected exception of type FormatException was not thrown");
+    }
+
+    [TestMethod]
+    public async Task ExpectThrowsAsync_WhenNoExceptionIsThrown_ThrowsException()
+    {
+        const string view = @"Hello World";
+
+        ConsoleAssertException exception = await Assert.ThrowsExactlyAsync<ConsoleAssertException>(async () =>
+        {
+            await ConsoleAssert.ExpectThrowsAsync<FormatException>(view, async () =>
+            {
+                await Task.Yield();
+                System.Console.Write("Hello World");
+                // No exception thrown
+            });
+        });
+
+        StringAssert.Contains(exception.Message, "Expected exception of type FormatException was not thrown");
+    }
+
+    [TestMethod]
+    public void ExpectThrows_WithDifferentExceptionType_ThrowsOriginalException()
+    {
+        const string view = @"Enter a number: <<invalid
+>>Error: Invalid input";
+
+        // Expecting ArgumentException but FormatException is thrown
+        Assert.ThrowsExactly<FormatException>(() =>
+        {
+            ConsoleAssert.ExpectThrows<ArgumentException>(view, () =>
+            {
+                System.Console.Write("Enter a number: ");
+                string input = System.Console.ReadLine();
+                System.Console.Write("Error: Invalid input");
+                int.Parse(input); // This throws FormatException, not ArgumentException
+            });
+        });
+    }
+
+    [TestMethod]
+    public void ExpectThrows_WithNormalizeOptions_AppliesNormalization()
+    {
+        const string view = "Hello World\n";
+
+        ArgumentException exception = ConsoleAssert.ExpectThrows<ArgumentException>(view, () =>
+        {
+            System.Console.WriteLine("Hello World");
+            throw new ArgumentException("Test exception");
+        }, NormalizeOptions.NormalizeLineEndings);
+
+        Assert.IsNotNull(exception);
+        StringAssert.Contains(exception.Message, "Test exception");
+    }
+
+    [TestMethod]
+    public void ExpectThrows_WithWrongExpectedOutput_ThrowsConsoleAssertException()
+    {
+        const string view = "Wrong output <<invalid\n>>Error: Invalid input";
+
+        Assert.ThrowsExactly<ConsoleAssertException>(() =>
+        {
+            ConsoleAssert.ExpectThrows<FormatException>(view, () =>
+            {
+                System.Console.Write("Enter a number: ");
+                string input = System.Console.ReadLine();
+                System.Console.Write("Error: Invalid input");
+                int.Parse(input);
+            });
         });
     }
 }
