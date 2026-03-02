@@ -58,7 +58,7 @@ jobs:
       id-token: write  # Required for OIDC trusted publishing to nuget.org
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: NuGet
       - name: NuGet login (OIDC → temp API key)
