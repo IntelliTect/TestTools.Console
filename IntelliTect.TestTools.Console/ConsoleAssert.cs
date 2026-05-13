@@ -236,6 +236,7 @@ public static class ConsoleAssert
     /// <param name="comparisonOperator"></param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
     private static string Expect(
         string expected, Action action, Func<string, string, bool> comparisonOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
@@ -261,6 +262,7 @@ public static class ConsoleAssert
     /// <param name="comparisonOperator"></param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
     private static Task<string> ExpectAsync(
         string expected, Func<Task> action, Func<string, string, bool> comparisonOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
@@ -403,9 +405,8 @@ public static class ConsoleAssert
     /// <param name="areEquivalentOperator">delegate for comparing the expected from actual output.</param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
     private static string Execute(string givenInput,
-        string expectedOutput,
-        Action action,
         Func<string, string, bool> areEquivalentOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
         string equivalentOperatorErrorMessage = "Values are not equal",
@@ -426,6 +427,7 @@ public static class ConsoleAssert
     /// <param name="areEquivalentOperator">delegate for comparing the expected from actual output.</param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
     private static async Task<string> ExecuteAsync(string givenInput,
         string expectedOutput,
         Func<Task> action,
