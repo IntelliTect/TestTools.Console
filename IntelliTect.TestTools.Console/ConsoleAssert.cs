@@ -468,7 +468,9 @@ public static class ConsoleAssert
         bool failTest = !areEquivalentOperator(expectedOutput, output);
         if (failTest)
         {
-            throw new ConsoleAssertException(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage));
+            // Detect wildcard matching by checking the error message for the wildcard-specific phrase.
+            bool isWildcardMatching = equivalentOperatorErrorMessage?.Contains("wildcard", StringComparison.OrdinalIgnoreCase) == true;
+            throw new ConsoleAssertException(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage, isWildcardMatching));
         }
     }
 
@@ -555,7 +557,7 @@ public static class ConsoleAssert
     }
 
 
-    private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null)
+    private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null, bool isWildcardMatching = false)
     {
         string result = "";
 
@@ -580,18 +582,45 @@ public static class ConsoleAssert
         else
         {
             // Write the output that shows the difference.
-            for (int counter = 0; counter < Math.Min(expectedOutput.Length, output.Length); counter++)
+            // Skip character-by-character comparison for wildcard matching as wildcards intentionally differ from literal text.
+            if (!isWildcardMatching)
             {
-                if (expectedOutput[counter] != output[counter]) // TODO: The message is invalid when using wild cards.
+                for (int counter = 0; counter < Math.Min(expectedOutput.Length, output.Length); counter++)
                 {
-                    result += Environment.NewLine
-                        + $"Character {counter} did not match: "
-                        + $"'{CSharpStringEncode(expectedOutput[counter])}' != '{CSharpStringEncode(output[counter])})'";
+                    if (expectedOutput[counter] != output[counter]) // TODO: The message is invalid when using wild cards.
+                    {
+                        result += Environment.NewLine
+                            + $"Character {counter} did not match: "
+                            + $"'{CSharpStringEncode(expectedOutput[counter])}' != '{CSharpStringEncode(output[counter])})'";
 
-                    break;
+                        break;
+                    }
                 }
             }
         }
+
+        // If wildcard matching is being used, add detailed line-by-line analysis
+        if (isWildcardMatching)
+        {
+            try
+            {
+                var matchResults = WildcardMatchAnalyzer.AnalyzeMatch(expectedOutput, output);
+                result += WildcardMatchAnalyzer.GenerateDetailedDiff(matchResults);
+            }
+            catch (ArgumentException ex)
+            {
+                // Pattern analysis failed - inform user but don't crash
+                result += Environment.NewLine +
+                    $"⚠️  Note: Could not generate detailed wildcard analysis: {ex.Message}";
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Analysis encountered an unexpected state - inform user but don't crash
+                result += Environment.NewLine +
+                    $"⚠️  Note: Wildcard analysis encountered an error: {ex.Message}";
+            }
+        }
+
         return result;
     }
 
