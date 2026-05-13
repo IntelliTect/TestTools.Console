@@ -279,6 +279,8 @@ public static class ConsoleAssert
     private static readonly Func<string, string, bool> LikeOperator =
         (expected, output) => output.IsLike(expected);
 
+    private const string WildcardMismatchMessage = "The values are not like (using wildcards) each other";
+
     /// <summary>
     /// Performs a unit test on a console-based method. A "view" of
     /// what a user would see in their console is provided as a string,
@@ -293,7 +295,7 @@ public static class ConsoleAssert
     public static string ExpectLike(string expected, char escapeCharacter, Action action)
     {
         return Expect(expected, action, (pattern, output) => output.IsLike(pattern, escapeCharacter),
-            NormalizeOptions.Default, "The values are not like (using wildcards) each other", isWildcardMatching: true);
+            NormalizeOptions.Default, WildcardMismatchMessage, isWildcardMatching: true);
     }
 
     /// <summary>
@@ -315,7 +317,7 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings ? NormalizeOptions.NormalizeLineEndings : NormalizeOptions.None,
-            "The values are not like (using wildcards) each other",
+            WildcardMismatchMessage,
             isWildcardMatching: true);
     }
 
@@ -339,7 +341,7 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
-            "The values are not like (using wildcards) each other",
+            WildcardMismatchMessage,
             isWildcardMatching: true);
     }
 
@@ -363,7 +365,7 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
-            "The values are not like (using wildcards) each other",
+            WildcardMismatchMessage,
             isWildcardMatching: true);
     }
 
@@ -751,7 +753,7 @@ public static class ConsoleAssert
         process.WaitForExit();
         standardOutput = process.StandardOutput.ReadToEnd();
         standardError = process.StandardError.ReadToEnd();
-        AssertExpectation(expected, standardOutput, (left, right) => LikeOperator(left, right), "The values are not like (using wildcards) each other", isWildcardMatching: true);
+        AssertExpectation(expected, standardOutput, LikeOperator, WildcardMismatchMessage, isWildcardMatching: true);
         return process;
     }
 
