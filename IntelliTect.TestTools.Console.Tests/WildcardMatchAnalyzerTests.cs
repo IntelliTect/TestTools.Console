@@ -183,7 +183,7 @@ public class WildcardMatchAnalyzerTests
         Assert.AreEqual(1, results.Count);
         Assert.IsTrue(results[0].IsMatch);
         Assert.AreEqual(1, results[0].WildcardMatches.Count);
-        Assert.AreEqual("long prefix ", results[0].WildcardMatches[0].MatchedText);
+        Assert.AreEqual("long prefix", results[0].WildcardMatches[0].MatchedText);
     }
 
     [TestMethod]

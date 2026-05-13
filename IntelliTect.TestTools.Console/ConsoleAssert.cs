@@ -409,6 +409,8 @@ public static class ConsoleAssert
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
     /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
     private static string Execute(string givenInput,
+        string expectedOutput,
+        Action action,
         Func<string, string, bool> areEquivalentOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
         string equivalentOperatorErrorMessage = "Values are not equal",
@@ -581,7 +583,7 @@ public static class ConsoleAssert
 
         int expectedOutputLength = expectedOutput.Length;
         int outputLength = output.Length;
-        if (expectedOutputLength != outputLength)
+        if (expectedOutputLength != outputLength && !isWildcardMatching)
         {
             result += $"{Environment.NewLine}The expected length of {expectedOutputLength} does not match the output length of {outputLength}. ";
             string[] items = (new string[] { expectedOutput, output }).OrderBy(item => item.Length).ToArray();
