@@ -47,7 +47,10 @@ internal static class WildcardMatchAnalyzer
     /// <summary>
     /// Analyzes wildcard pattern matching line by line and returns detailed results.
     /// </summary>
-    internal static List<LineMatchResult> AnalyzeMatch(string expectedPattern, string actualText)
+    /// <param name="expectedPattern">The expected output pattern, which may contain wildcard characters.</param>
+    /// <param name="actualText">The actual console output to compare against the pattern.</param>
+    /// <param name="escapeCharacter">The escape character used to treat wildcard characters as literals. Defaults to '\'.</param>
+    internal static List<LineMatchResult> AnalyzeMatch(string expectedPattern, string actualText, char escapeCharacter = '\\')
     {
         var results = new List<LineMatchResult>();
 
@@ -81,7 +84,7 @@ internal static class WildcardMatchAnalyzer
             else
             {
                 // Try to match the line and capture what wildcards matched
-                lineResult.IsMatch = MatchLineWithWildcards(expectedLine, actualLine, lineResult.WildcardMatches);
+                lineResult.IsMatch = MatchLineWithWildcards(expectedLine, actualLine, lineResult.WildcardMatches, escapeCharacter);
             }
 
             results.Add(lineResult);
@@ -152,11 +155,11 @@ internal static class WildcardMatchAnalyzer
     /// Tries to match a line with wildcards and captures what each wildcard matched.
     /// This is a simplified implementation that tracks * and ? wildcards.
     /// </summary>
-    private static bool MatchLineWithWildcards(string pattern, string text, List<WildcardMatch> wildcardMatches)
+    private static bool MatchLineWithWildcards(string pattern, string text, List<WildcardMatch> wildcardMatches, char escapeCharacter)
     {
         try
         {
-            var wildcardPattern = new WildcardPattern(pattern);
+            var wildcardPattern = new WildcardPattern(pattern, escapeCharacter);
             bool isMatch = wildcardPattern.IsMatch(text);
 
             if (isMatch)
@@ -188,9 +191,9 @@ internal static class WildcardMatchAnalyzer
     /// perfect replica of the matching engine. In complex patterns with multiple wildcards,
     /// the actual match may differ from what this heuristic reports.
     ///
-    /// Known limitation: '?' wildcards that appear immediately after '*' are reported as
-    /// part of the '*' match rather than separately, because determining where '*' ends
-    /// and '?' begins requires solving the full match problem.
+    /// Known limitation: when '?' follows '*', the greedy '*' finds no literal anchor and
+    /// matches the empty string at the current position; '?' is then recorded as its own
+    /// separate entry. The reported split may differ from the actual backtracking match.
     /// </summary>
     private static void ExtractWildcardMatches(string pattern, string text, List<WildcardMatch> wildcardMatches)
     {
