@@ -239,13 +239,14 @@ public static class ConsoleAssert
     private static string Expect(
         string expected, Action action, Func<string, string, bool> comparisonOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal")
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false)
     {
         (string input, string output) = Parse(expected);
 
         return Execute(input, output, action,
             (left, right) => comparisonOperator(left, right),
-            normalizeOptions, equivalentOperatorErrorMessage);
+            normalizeOptions, equivalentOperatorErrorMessage, isWildcardMatching);
     }
 
     /// <summary>
@@ -263,13 +264,14 @@ public static class ConsoleAssert
     private static Task<string> ExpectAsync(
         string expected, Func<Task> action, Func<string, string, bool> comparisonOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal")
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false)
     {
         (string input, string output) = Parse(expected);
 
         return ExecuteAsync(input, output, action,
             (left, right) => comparisonOperator(left, right),
-            normalizeOptions, equivalentOperatorErrorMessage);
+            normalizeOptions, equivalentOperatorErrorMessage, isWildcardMatching);
     }
 
     private static readonly Func<string, string, bool> LikeOperator =
@@ -288,7 +290,8 @@ public static class ConsoleAssert
     [Obsolete]
     public static string ExpectLike(string expected, char escapeCharacter, Action action)
     {
-        return Expect(expected, action, (pattern, output) => output.IsLike(pattern, escapeCharacter));
+        return Expect(expected, action, (pattern, output) => output.IsLike(pattern, escapeCharacter),
+            NormalizeOptions.Default, "The values are not like (using wildcards) each other", isWildcardMatching: true);
     }
 
     /// <summary>
@@ -310,7 +313,8 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings ? NormalizeOptions.NormalizeLineEndings : NormalizeOptions.None,
-            "The values are not like (using wildcards) each other");
+            "The values are not like (using wildcards) each other",
+            isWildcardMatching: true);
     }
 
     /// <summary>
@@ -333,7 +337,8 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
-            "The values are not like (using wildcards) each other");
+            "The values are not like (using wildcards) each other",
+            isWildcardMatching: true);
     }
 
     /// <summary>
@@ -356,7 +361,8 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
-            "The values are not like (using wildcards) each other");
+            "The values are not like (using wildcards) each other",
+            isWildcardMatching: true);
     }
 
     /// <summary>
@@ -402,12 +408,13 @@ public static class ConsoleAssert
         Action action,
         Func<string, string, bool> areEquivalentOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal"
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false
     )
     {
         string output = Execute(givenInput, action);
 
-        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage);
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage, isWildcardMatching);
     }
 
     /// <summary>
@@ -424,12 +431,13 @@ public static class ConsoleAssert
         Func<Task> action,
         Func<string, string, bool> areEquivalentOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal"
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false
     )
     {
         string output = await ExecuteAsync(givenInput, action);
 
-        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage);
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage, isWildcardMatching);
     }
 
     private static string CompareOutput(
@@ -437,7 +445,8 @@ public static class ConsoleAssert
         string expectedOutput,
         NormalizeOptions normalizeOptions,
         Func<string, string, bool> areEquivalentOperator,
-        string equivalentOperatorErrorMessage)
+        string equivalentOperatorErrorMessage,
+        bool isWildcardMatching = false)
     {
         if ((normalizeOptions & NormalizeOptions.NormalizeLineEndings) != 0)
         {
@@ -451,7 +460,7 @@ public static class ConsoleAssert
             expectedOutput = StripAnsiEscapeCodes(expectedOutput);
         }
 
-        AssertExpectation(expectedOutput, output, areEquivalentOperator, equivalentOperatorErrorMessage);
+        AssertExpectation(expectedOutput, output, areEquivalentOperator, equivalentOperatorErrorMessage, isWildcardMatching);
         return output;
     }
 
@@ -462,15 +471,13 @@ public static class ConsoleAssert
     /// <param name="output">The actual value output.</param>
     /// <param name="areEquivalentOperator">The operator used to compare equivalency.</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
     private static void AssertExpectation(string expectedOutput, string output, Func<string, string, bool> areEquivalentOperator,
-        string equivalentOperatorErrorMessage = null)
+        string equivalentOperatorErrorMessage = null, bool isWildcardMatching = false)
     {
         bool failTest = !areEquivalentOperator(expectedOutput, output);
         if (failTest)
         {
-            // Detect wildcard matching by checking the error message for the wildcard-specific phrase.
-            // Note: string.Contains(string, StringComparison) is not available on netstandard2.0.
-            bool isWildcardMatching = equivalentOperatorErrorMessage?.IndexOf("wildcard", StringComparison.OrdinalIgnoreCase) >= 0;
             throw new ConsoleAssertException(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage, isWildcardMatching));
         }
     }
@@ -742,7 +749,7 @@ public static class ConsoleAssert
         process.WaitForExit();
         standardOutput = process.StandardOutput.ReadToEnd();
         standardError = process.StandardError.ReadToEnd();
-        AssertExpectation(expected, standardOutput, (left, right) => LikeOperator(left, right), "The values are not like (using wildcards) each other");
+        AssertExpectation(expected, standardOutput, (left, right) => LikeOperator(left, right), "The values are not like (using wildcards) each other", isWildcardMatching: true);
         return process;
     }
 

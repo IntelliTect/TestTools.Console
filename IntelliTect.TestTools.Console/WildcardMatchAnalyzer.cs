@@ -131,11 +131,15 @@ internal static class WildcardMatchAnalyzer
                 }
                 else if (!result.IsMatch)
                 {
-                    // Try to show where the mismatch occurred
-                    string mismatchInfo = FindMismatchPosition(result.ExpectedLine, result.ActualLine);
-                    if (!string.IsNullOrEmpty(mismatchInfo))
+                    // Only show positional mismatch info for literal patterns; wildcard patterns
+                    // produce misleading output (e.g., "expected '*' but got 'x'").
+                    if (!ContainsWildcard(result.ExpectedLine))
                     {
-                        sb.AppendLine($"  {mismatchInfo}");
+                        string mismatchInfo = FindMismatchPosition(result.ExpectedLine, result.ActualLine);
+                        if (!string.IsNullOrEmpty(mismatchInfo))
+                        {
+                            sb.AppendLine($"  {mismatchInfo}");
+                        }
                     }
                 }
             }
@@ -289,10 +293,6 @@ internal static class WildcardMatchAnalyzer
     }
 
     /// <summary>
-    /// Finds the next position where the pattern starts matching in the text.
-    /// </summary>
-    private static int FindNextLiteralMatch(string text, int startPos, string pattern)
-    /// <summary>
     /// Finds the earliest position in <paramref name="text"/> (at or after <paramref name="startPos"/>)
     /// where the leading literal prefix of <paramref name="pattern"/> appears as a substring.
     /// This prevents false matches — e.g., pattern "and end" won't match the 'a' in "another".
@@ -360,7 +360,20 @@ internal static class WildcardMatchAnalyzer
         else if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
             text = text.Substring(0, text.Length - 1);
 
+        if (text.Length == 0)
+            return Array.Empty<string>();
+
         return text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+    }
+
+    /// <summary>
+    /// Returns true if the pattern contains any wildcard characters (<c>*</c>, <c>?</c>, or <c>[</c>).
+    /// </summary>
+    private static bool ContainsWildcard(string pattern)
+    {
+        if (pattern == null) return false;
+        // Note: string.Contains(char) is not available on netstandard2.0.
+        return pattern.IndexOf('*') >= 0 || pattern.IndexOf('?') >= 0 || pattern.IndexOf('[') >= 0;
     }
 
     /// <summary>
