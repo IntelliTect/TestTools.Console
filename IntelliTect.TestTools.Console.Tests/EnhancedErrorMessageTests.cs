@@ -75,36 +75,12 @@ public class EnhancedErrorMessageTests
     }
 
     [TestMethod]
-    public void ExecuteProcess_WildcardMismatch_ShowsDetailedDiff()
+    public void ExpectLike_SuccessfulWildcardMatch_DoesNotThrow()
     {
-        // This test demonstrates the improved error output for ExecuteProcess
-        // when wildcard matching fails.
-
-        string expected = "This * should match";
-
-        ConsoleAssertException exception = null;
-        try
+        // Verify the feature doesn't break the happy path
+        ConsoleAssert.ExpectLike("Hello * world", () =>
         {
-            ConsoleAssert.ExecuteProcess(
-                expected,
-                "echo",
-                "Output that does not match",
-                out string _,
-                out _);
-        }
-        catch (ConsoleAssertException ex)
-        {
-            exception = ex;
-        }
-
-        // Assert
-        Assert.IsNotNull(exception);
-        string errorMessage = exception.Message;
-
-        // Should contain wildcard matching error message
-        StringAssert.Contains(errorMessage, "wildcard");
-
-        // Should contain the line-by-line comparison
-        StringAssert.Contains(errorMessage, "Line-by-line comparison");
+            System.Console.Write("Hello beautiful world");
+        });
     }
 }

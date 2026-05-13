@@ -158,18 +158,54 @@ public class WildcardMatchAnalyzerTests
     }
 
     [TestMethod]
+    public void AnalyzeMatch_QuestionMarkWildcard_FailsOnTooManyChars()
+    {
+        // '?' matches exactly one character — "test12" has two chars after "test"
+        var results = WildcardMatchAnalyzer.AnalyzeMatch("test?", "test12");
+
+        Assert.AreEqual(1, results.Count);
+        Assert.IsFalse(results[0].IsMatch);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_CharacterClass_TracksMatch()
+    {
+        string expected = "value[0-9]";
+        string actual = "value5";
+
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        Assert.AreEqual("value5"[5].ToString(), results[0].WildcardMatches[0].MatchedText);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_StarAtStart_MatchesLeadingText()
+    {
+        var results = WildcardMatchAnalyzer.AnalyzeMatch("* end", "long prefix end");
+
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        Assert.AreEqual("long prefix ", results[0].WildcardMatches[0].MatchedText);
+    }
+
+    [TestMethod]
     public void AnalyzeMatch_MultipleConsecutiveWildcards_HandlesCorrectly()
     {
-        // Arrange
         string expected = "a***b";
         string actual = "aXXXb";
 
-        // Act
         var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
 
-        // Assert
         Assert.AreEqual(1, results.Count);
         Assert.IsTrue(results[0].IsMatch);
+        // Consecutive '*' wildcards collapse to a single WildcardMatch entry
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        Assert.AreEqual("*", results[0].WildcardMatches[0].Pattern);
+        Assert.AreEqual("XXX", results[0].WildcardMatches[0].MatchedText);
     }
 
     [TestMethod]

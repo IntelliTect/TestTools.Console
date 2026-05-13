@@ -469,7 +469,8 @@ public static class ConsoleAssert
         if (failTest)
         {
             // Detect wildcard matching by checking the error message for the wildcard-specific phrase.
-            bool isWildcardMatching = equivalentOperatorErrorMessage?.Contains("wildcard", StringComparison.OrdinalIgnoreCase) == true;
+            // Note: string.Contains(string, StringComparison) is not available on netstandard2.0.
+            bool isWildcardMatching = equivalentOperatorErrorMessage?.IndexOf("wildcard", StringComparison.OrdinalIgnoreCase) >= 0;
             throw new ConsoleAssertException(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage, isWildcardMatching));
         }
     }
@@ -587,7 +588,7 @@ public static class ConsoleAssert
             {
                 for (int counter = 0; counter < Math.Min(expectedOutput.Length, output.Length); counter++)
                 {
-                    if (expectedOutput[counter] != output[counter]) // TODO: The message is invalid when using wild cards.
+                    if (expectedOutput[counter] != output[counter])
                     {
                         result += Environment.NewLine
                             + $"Character {counter} did not match: "
@@ -607,17 +608,11 @@ public static class ConsoleAssert
                 var matchResults = WildcardMatchAnalyzer.AnalyzeMatch(expectedOutput, output);
                 result += WildcardMatchAnalyzer.GenerateDetailedDiff(matchResults);
             }
-            catch (ArgumentException ex)
+            catch (Exception ex)
             {
-                // Pattern analysis failed - inform user but don't crash
+                // Pattern analysis failed — inform user but don't crash the test runner
                 result += Environment.NewLine +
                     $"⚠️  Note: Could not generate detailed wildcard analysis: {ex.Message}";
-            }
-            catch (InvalidOperationException ex)
-            {
-                // Analysis encountered an unexpected state - inform user but don't crash
-                result += Environment.NewLine +
-                    $"⚠️  Note: Wildcard analysis encountered an error: {ex.Message}";
             }
         }
 

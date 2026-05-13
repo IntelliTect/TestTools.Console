@@ -42,14 +42,12 @@ internal static class WildcardMatchAnalyzer
         /// The text that was matched by this wildcard.
         /// </summary>
         public string MatchedText { get; set; } = string.Empty;
-
-        public int Position { get; set; }
     }
 
     /// <summary>
     /// Analyzes wildcard pattern matching line by line and returns detailed results.
     /// </summary>
-    public static List<LineMatchResult> AnalyzeMatch(string expectedPattern, string actualText)
+    internal static List<LineMatchResult> AnalyzeMatch(string expectedPattern, string actualText)
     {
         var results = new List<LineMatchResult>();
 
@@ -95,7 +93,7 @@ internal static class WildcardMatchAnalyzer
     /// <summary>
     /// Generates a detailed diff message from the match results.
     /// </summary>
-    public static string GenerateDetailedDiff(List<LineMatchResult> matchResults)
+    internal static string GenerateDetailedDiff(List<LineMatchResult> matchResults)
     {
         var sb = new StringBuilder();
         sb.AppendLine();
@@ -176,7 +174,7 @@ internal static class WildcardMatchAnalyzer
     /// Extracts what each wildcard in the pattern matched in the text.
     ///
     /// Algorithm:
-    /// 1. For '*': Greedily matches text until the next literal character in pattern
+    /// 1. For '*': Greedily matches text until the next literal prefix in the remaining pattern
     /// 2. For '?': Matches exactly one character
     /// 3. For '[...]': Matches one character from the set
     ///
@@ -185,12 +183,15 @@ internal static class WildcardMatchAnalyzer
     /// It's designed to give users helpful debugging information rather than to be a
     /// perfect replica of the matching engine. In complex patterns with multiple wildcards,
     /// the actual match may differ from what this heuristic reports.
+    ///
+    /// Known limitation: '?' wildcards that appear immediately after '*' are reported as
+    /// part of the '*' match rather than separately, because determining where '*' ends
+    /// and '?' begins requires solving the full match problem.
     /// </summary>
     private static void ExtractWildcardMatches(string pattern, string text, List<WildcardMatch> wildcardMatches)
     {
         int patternPos = 0;
         int textPos = 0;
-        int wildcardIndex = 0;
 
         while (patternPos < pattern.Length && textPos <= text.Length)
         {
@@ -198,62 +199,58 @@ internal static class WildcardMatchAnalyzer
 
             if (patternChar == '*')
             {
-                // Find the next non-wildcard character in the pattern
+                // Skip consecutive '*' characters (equivalent wildcards)
                 int nextPatternPos = patternPos + 1;
-                while (nextPatternPos < pattern.Length && (pattern[nextPatternPos] == '*' || pattern[nextPatternPos] == '?'))
+                while (nextPatternPos < pattern.Length && pattern[nextPatternPos] == '*')
                 {
                     nextPatternPos++;
                 }
 
                 if (nextPatternPos >= pattern.Length)
                 {
-                    // * at the end matches everything remaining
+                    // '*' at the end matches everything remaining
                     wildcardMatches.Add(new WildcardMatch
                     {
                         Pattern = "*",
-                        MatchedText = text.Substring(textPos),
-                        Position = wildcardIndex++
+                        MatchedText = text.Substring(textPos)
                     });
                     return;
                 }
 
-                // Find where the next literal character appears in the text
+                // Find where the next literal prefix of the remaining pattern appears in the text
                 string remainingPattern = pattern.Substring(nextPatternPos);
                 int nextLiteralIndex = FindNextLiteralMatch(text, textPos, remainingPattern);
 
                 if (nextLiteralIndex == -1)
                 {
-                    // Could not find a match for the remaining pattern
+                    // Could not find a match for the remaining pattern — '*' consumed the rest
                     wildcardMatches.Add(new WildcardMatch
                     {
                         Pattern = "*",
-                        MatchedText = text.Substring(textPos),
-                        Position = wildcardIndex++
+                        MatchedText = text.Substring(textPos)
                     });
                     return;
                 }
 
-                // The * matched everything from textPos to nextLiteralIndex
+                // '*' matched everything from textPos to nextLiteralIndex
                 wildcardMatches.Add(new WildcardMatch
                 {
                     Pattern = "*",
-                    MatchedText = text.Substring(textPos, nextLiteralIndex - textPos),
-                    Position = wildcardIndex++
+                    MatchedText = text.Substring(textPos, nextLiteralIndex - textPos)
                 });
 
                 textPos = nextLiteralIndex;
-                patternPos++;
+                patternPos = nextPatternPos;
             }
             else if (patternChar == '?')
             {
-                // ? matches exactly one character
+                // '?' matches exactly one character
                 if (textPos < text.Length)
                 {
                     wildcardMatches.Add(new WildcardMatch
                     {
                         Pattern = "?",
-                        MatchedText = text[textPos].ToString(),
-                        Position = wildcardIndex++
+                        MatchedText = text[textPos].ToString()
                     });
                     textPos++;
                 }
@@ -261,7 +258,7 @@ internal static class WildcardMatchAnalyzer
             }
             else if (patternChar == '[')
             {
-                // Character class - skip to the closing ]
+                // Character class — skip to the closing ']'
                 int closingBracket = pattern.IndexOf(']', patternPos);
                 if (closingBracket > patternPos && textPos < text.Length)
                 {
@@ -269,8 +266,7 @@ internal static class WildcardMatchAnalyzer
                     wildcardMatches.Add(new WildcardMatch
                     {
                         Pattern = charClass,
-                        MatchedText = text[textPos].ToString(),
-                        Position = wildcardIndex++
+                        MatchedText = text[textPos].ToString()
                     });
                     textPos++;
                     patternPos = closingBracket + 1;
@@ -282,7 +278,7 @@ internal static class WildcardMatchAnalyzer
             }
             else
             {
-                // Literal character - must match exactly
+                // Literal character — must match exactly
                 if (textPos < text.Length && text[textPos] == patternChar)
                 {
                     textPos++;
@@ -296,28 +292,35 @@ internal static class WildcardMatchAnalyzer
     /// Finds the next position where the pattern starts matching in the text.
     /// </summary>
     private static int FindNextLiteralMatch(string text, int startPos, string pattern)
+    /// <summary>
+    /// Finds the earliest position in <paramref name="text"/> (at or after <paramref name="startPos"/>)
+    /// where the leading literal prefix of <paramref name="pattern"/> appears as a substring.
+    /// This prevents false matches — e.g., pattern "and end" won't match the 'a' in "another".
+    /// Returns -1 if no such position exists.
+    /// </summary>
+    private static int FindNextLiteralMatch(string text, int startPos, string pattern)
     {
-        // Simple heuristic: find the first non-wildcard character in the pattern
-        // and search for it in the text
+        // Build the leading literal prefix (stop at the first wildcard)
+        var literalPrefix = new StringBuilder();
         for (int i = 0; i < pattern.Length; i++)
         {
             char c = pattern[i];
-            if (c != '*' && c != '?' && c != '[')
-            {
-                // Found a literal character, search for it
-                int index = text.IndexOf(c, startPos);
-                if (index >= 0)
-                {
-                    return index;
-                }
-                return -1;
-            }
+            if (c == '*' || c == '?' || c == '[')
+                break;
+            literalPrefix.Append(c);
         }
-        return -1; // Pattern has no literals
+
+        if (literalPrefix.Length == 0)
+            return startPos; // No literal anchor — '*' can match at current position
+
+        string prefix = literalPrefix.ToString();
+        int index = text.IndexOf(prefix, startPos, StringComparison.Ordinal);
+        return index; // -1 if not found
     }
 
     /// <summary>
-    /// Finds the position where pattern and text first differ (for non-wildcard mismatches).
+    /// Finds the position where expected and actual first differ (literal comparison).
+    /// Only called for lines that do not contain wildcards — safe for positional comparison.
     /// </summary>
     private static string FindMismatchPosition(string expected, string actual)
     {
@@ -325,7 +328,7 @@ internal static class WildcardMatchAnalyzer
 
         for (int i = 0; i < minLength; i++)
         {
-            if (expected[i] != actual[i] && expected[i] != '*' && expected[i] != '?')
+            if (expected[i] != actual[i])
             {
                 return $"Mismatch at position {i}: expected '{EscapeChar(expected[i])}' but got '{EscapeChar(actual[i])}'";
             }
@@ -341,6 +344,8 @@ internal static class WildcardMatchAnalyzer
 
     /// <summary>
     /// Splits text into lines, normalizing line endings.
+    /// A single trailing newline is stripped before splitting so that
+    /// <c>Console.WriteLine("X")</c> produces <c>["X"]</c> not <c>["X", ""]</c>.
     /// </summary>
     private static string[] SplitIntoLines(string text)
     {
@@ -348,6 +353,12 @@ internal static class WildcardMatchAnalyzer
         {
             return Array.Empty<string>();
         }
+
+        // Strip single trailing newline written by Console.WriteLine
+        if (text.EndsWith("\r\n", StringComparison.Ordinal))
+            text = text.Substring(0, text.Length - 2);
+        else if (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal))
+            text = text.Substring(0, text.Length - 1);
 
         return text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
     }
