@@ -6,6 +6,18 @@ namespace IntelliTect.TestTools.Console.Tests;
 [TestClass]
 public class WildcardMatchAnalyzerTests
 {
+    /// <summary>
+    /// Calls <see cref="WildcardMatchAnalyzer.AnalyzeMatch"/> then
+    /// <see cref="WildcardMatchAnalyzer.GenerateDetailedDiff"/> and asserts the result is non-empty.
+    /// </summary>
+    private static string GetDiff(string expected, string actual)
+    {
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+        string diff = WildcardMatchAnalyzer.GenerateDetailedDiff(results);
+        Assert.IsFalse(string.IsNullOrEmpty(diff));
+        return diff;
+    }
+
     [TestMethod]
     public void AnalyzeMatch_SingleLineMatch_IdentifiesWildcardMatches()
     {
@@ -96,37 +108,19 @@ public class WildcardMatchAnalyzerTests
     [TestMethod]
     public void GenerateDetailedDiff_CreatesReadableOutput()
     {
-        // Arrange
-        string expected = "Hello * world\nLine *";
-        string actual = "Hello beautiful world\nLine 2";
+        string diff = GetDiff("Hello * world\nLine *", "Hello beautiful world\nLine 2");
 
-        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
-
-        // Act
-        string diff = WildcardMatchAnalyzer.GenerateDetailedDiff(results);
-
-        // Assert
-        Assert.IsFalse(string.IsNullOrEmpty(diff));
         StringAssert.Contains(diff, "Line-by-line comparison");
-        StringAssert.Contains(diff, "✅"); // Should contain success markers
+        StringAssert.Contains(diff, "✅");
         StringAssert.Contains(diff, "Wildcard matches");
     }
 
     [TestMethod]
     public void GenerateDetailedDiff_WithMismatch_ShowsFailure()
     {
-        // Arrange
-        string expected = "Expected text";
-        string actual = "Actual text";
+        string diff = GetDiff("Expected text", "Actual text");
 
-        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
-
-        // Act
-        string diff = WildcardMatchAnalyzer.GenerateDetailedDiff(results);
-
-        // Assert
-        Assert.IsFalse(string.IsNullOrEmpty(diff));
-        StringAssert.Contains(diff, "❌"); // Should contain failure marker
+        StringAssert.Contains(diff, "❌");
     }
 
     [TestMethod]

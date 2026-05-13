@@ -210,24 +210,15 @@ internal static class WildcardMatchAnalyzer
                     nextPatternPos++;
                 }
 
-                if (nextPatternPos >= pattern.Length)
-                {
-                    // '*' at the end matches everything remaining
-                    wildcardMatches.Add(new WildcardMatch
-                    {
-                        Pattern = "*",
-                        MatchedText = text.Substring(textPos)
-                    });
-                    return;
-                }
+                // Find where the next literal prefix of the remaining pattern appears in the text.
+                // If '*' is at the end of the pattern, skip the search entirely.
+                string remainingPattern = nextPatternPos < pattern.Length ? pattern.Substring(nextPatternPos) : null;
+                int nextLiteralIndex = remainingPattern != null ? FindNextLiteralMatch(text, textPos, remainingPattern) : -1;
 
-                // Find where the next literal prefix of the remaining pattern appears in the text
-                string remainingPattern = pattern.Substring(nextPatternPos);
-                int nextLiteralIndex = FindNextLiteralMatch(text, textPos, remainingPattern);
-
-                if (nextLiteralIndex == -1)
+                if (nextPatternPos >= pattern.Length || nextLiteralIndex == -1)
                 {
-                    // Could not find a match for the remaining pattern — '*' consumed the rest
+                    // '*' at the end of pattern, or remaining pattern has no literal anchor —
+                    // consume everything remaining in the text.
                     wildcardMatches.Add(new WildcardMatch
                     {
                         Pattern = "*",
@@ -384,10 +375,10 @@ internal static class WildcardMatchAnalyzer
         if (text == null) return "<null>";
         if (text == string.Empty) return "<empty>";
 
-        return text
-            .Replace("\r", "\\r")
-            .Replace("\n", "\\n")
-            .Replace("\t", "\\t");
+        var sb = new StringBuilder(text.Length);
+        foreach (char c in text)
+            sb.Append(EscapeChar(c));
+        return sb.ToString();
     }
 
     /// <summary>

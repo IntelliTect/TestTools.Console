@@ -6,50 +6,39 @@ namespace IntelliTect.TestTools.Console.Tests;
 [TestClass]
 public class EnhancedErrorMessageTests
 {
+    /// <summary>
+    /// Runs <paramref name="consoleAction"/> via <see cref="ConsoleAssert.ExpectLike"/>, asserts it
+    /// throws <see cref="ConsoleAssertException"/>, and returns the exception message.
+    /// </summary>
+    private static string GetMismatchMessage(string expected, Action consoleAction)
+    {
+        var ex = Assert.ThrowsExactly<ConsoleAssertException>(
+            () => ConsoleAssert.ExpectLike(expected, consoleAction));
+        return ex.Message;
+    }
+
     [TestMethod]
     public void ExpectLike_WildcardMismatch_ShowsDetailedDiff()
     {
-        // Arrange - pattern with wildcards that will NOT match
-        string expected = "PING *(::1) 56 data bytes\n64 bytes from *";
+        string errorMessage = GetMismatchMessage(
+            "PING *(::1) 56 data bytes\n64 bytes from *",
+            () => System.Console.Write("PING localhost(::1) WRONG data bytes\n64 bytes from localhost"));
 
-        // Act & Assert - ConsoleAssert throws ConsoleAssertException on mismatch
-        ConsoleAssertException exception = Assert.ThrowsExactly<ConsoleAssertException>(() =>
-        {
-            ConsoleAssert.ExpectLike(expected, () =>
-            {
-                System.Console.Write("PING localhost(::1) WRONG data bytes\n64 bytes from localhost");
-            });
-        });
-
-        // Assert - Check that the error message contains the enhanced output
-        string errorMessage = exception.Message;
-
-        // Should contain the line-by-line comparison header
         StringAssert.Contains(errorMessage, "Line-by-line comparison");
-
-        // Should contain status indicators
-        StringAssert.Contains(errorMessage, "❌");  // Lines don't match
+        StringAssert.Contains(errorMessage, "❌");
     }
 
     [TestMethod]
     public void ExpectLike_ExtraLines_IdentifiedAsSuch()
     {
-        // Arrange - pattern expecting one line, but getting two
-        string expected = "Line 1";
-
-        // Act & Assert
-        ConsoleAssertException exception = Assert.ThrowsExactly<ConsoleAssertException>(() =>
-        {
-            ConsoleAssert.ExpectLike(expected, () =>
+        string errorMessage = GetMismatchMessage(
+            "Line 1",
+            () =>
             {
                 System.Console.WriteLine("Line 1");
                 System.Console.WriteLine("Line 2");
             });
-        });
 
-        // Assert
-        string errorMessage = exception.Message;
-        // With line-by-line comparison, we should see the extra line marked
         StringAssert.Contains(errorMessage, "Line 2: ❌");
         StringAssert.Contains(errorMessage, "Unexpected extra line");
     }
@@ -57,27 +46,16 @@ public class EnhancedErrorMessageTests
     [TestMethod]
     public void ExpectLike_MissingLines_IdentifiedAsSuch()
     {
-        // Arrange - pattern with wildcards expecting more lines
-        string expected = "Line 1\nLine *";
+        string errorMessage = GetMismatchMessage(
+            "Line 1\nLine *",
+            () => System.Console.WriteLine("Line 1"));
 
-        // Act & Assert
-        ConsoleAssertException exception = Assert.ThrowsExactly<ConsoleAssertException>(() =>
-        {
-            ConsoleAssert.ExpectLike(expected, () =>
-            {
-                System.Console.WriteLine("Line 1");
-            });
-        });
-
-        // Assert
-        string errorMessage = exception.Message;
         StringAssert.Contains(errorMessage, "Missing line");
     }
 
     [TestMethod]
     public void ExpectLike_SuccessfulWildcardMatch_DoesNotThrow()
     {
-        // Verify the feature doesn't break the happy path
         ConsoleAssert.ExpectLike("Hello * world", () =>
         {
             System.Console.Write("Hello beautiful world");
