@@ -1,0 +1,220 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+
+namespace IntelliTect.TestTools.Console.Tests;
+
+[TestClass]
+public class WildcardMatchAnalyzerTests
+{
+    /// <summary>
+    /// Calls <see cref="WildcardMatchAnalyzer.AnalyzeMatch"/> then
+    /// <see cref="WildcardMatchAnalyzer.GenerateDetailedDiff"/> and asserts the result is non-empty.
+    /// </summary>
+    private static string GetDiff(string expected, string actual)
+    {
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+        string diff = WildcardMatchAnalyzer.GenerateDetailedDiff(results);
+        Assert.IsFalse(string.IsNullOrEmpty(diff));
+        return diff;
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_SingleLineMatch_IdentifiesWildcardMatches()
+    {
+        // Arrange
+        string expected = "Hello * world";
+        string actual = "Hello beautiful world";
+
+        // Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        // Assert
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        // The * matches "beautiful" (without trailing space because "world" comes next)
+        Assert.AreEqual("beautiful", results[0].WildcardMatches[0].MatchedText);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_MultipleWildcards_TracksAllMatches()
+    {
+        // Arrange
+        string expected = "PING *(* (::1)) * data bytes";
+        string actual = "PING localhost(localhost (::1)) 56 data bytes";
+
+        // Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        // Assert
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.IsTrue(results[0].WildcardMatches.Count >= 2);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_Mismatch_IdentifiesFailure()
+    {
+        // Arrange
+        string expected = "Hello world";
+        string actual = "Hello universe";
+
+        // Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        // Assert
+        Assert.AreEqual(1, results.Count);
+        Assert.IsFalse(results[0].IsMatch);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_ExtraLinesInActual_MarkedAsUnexpected()
+    {
+        // Arrange
+        string expected = "Line 1\nLine 2";
+        string actual = "Line 1\nLine 2\nLine 3";
+
+        // Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        // Assert
+        Assert.AreEqual(3, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.IsTrue(results[1].IsMatch);
+        Assert.IsFalse(results[2].IsMatch); // Extra line
+        Assert.IsNull(results[2].ExpectedLine);
+        Assert.IsNotNull(results[2].ActualLine);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_MissingLinesInActual_MarkedAsMissing()
+    {
+        // Arrange
+        string expected = "Line 1\nLine 2\nLine 3";
+        string actual = "Line 1\nLine 2";
+
+        // Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        // Assert
+        Assert.AreEqual(3, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.IsTrue(results[1].IsMatch);
+        Assert.IsFalse(results[2].IsMatch); // Missing line
+        Assert.IsNotNull(results[2].ExpectedLine);
+        Assert.IsNull(results[2].ActualLine);
+    }
+
+    [TestMethod]
+    public void GenerateDetailedDiff_CreatesReadableOutput()
+    {
+        string diff = GetDiff("Hello * world\nLine *", "Hello beautiful world\nLine 2");
+
+        StringAssert.Contains(diff, "Line-by-line comparison");
+        StringAssert.Contains(diff, "✅");
+        StringAssert.Contains(diff, "Wildcard matches");
+    }
+
+    [TestMethod]
+    public void GenerateDetailedDiff_WithMismatch_ShowsFailure()
+    {
+        string diff = GetDiff("Expected text", "Actual text");
+
+        StringAssert.Contains(diff, "❌");
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_EmptyStrings_HandlesGracefully()
+    {
+        // Arrange & Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch("", "");
+
+        // Assert - Empty strings result in no lines to compare
+        Assert.AreEqual(0, results.Count);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_QuestionMarkWildcard_TracksMatch()
+    {
+        // Arrange
+        string expected = "test?";
+        string actual = "test1";
+
+        // Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        // Assert
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        Assert.AreEqual("?", results[0].WildcardMatches[0].Pattern);
+        Assert.AreEqual("1", results[0].WildcardMatches[0].MatchedText);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_QuestionMarkWildcard_FailsOnTooManyChars()
+    {
+        // '?' matches exactly one character — "test12" has two chars after "test"
+        var results = WildcardMatchAnalyzer.AnalyzeMatch("test?", "test12");
+
+        Assert.AreEqual(1, results.Count);
+        Assert.IsFalse(results[0].IsMatch);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_CharacterClass_TracksMatch()
+    {
+        string expected = "value[0-9]";
+        string actual = "value5";
+
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        Assert.AreEqual("value5"[5].ToString(), results[0].WildcardMatches[0].MatchedText);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_StarAtStart_MatchesLeadingText()
+    {
+        var results = WildcardMatchAnalyzer.AnalyzeMatch("* end", "long prefix end");
+
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        Assert.AreEqual("long prefix", results[0].WildcardMatches[0].MatchedText);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_MultipleConsecutiveWildcards_HandlesCorrectly()
+    {
+        string expected = "a***b";
+        string actual = "aXXXb";
+
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        Assert.AreEqual(1, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        // Consecutive '*' wildcards collapse to a single WildcardMatch entry
+        Assert.AreEqual(1, results[0].WildcardMatches.Count);
+        Assert.AreEqual("*", results[0].WildcardMatches[0].Pattern);
+        Assert.AreEqual("XXX", results[0].WildcardMatches[0].MatchedText);
+    }
+
+    [TestMethod]
+    public void AnalyzeMatch_MixedLineEndings_HandlesCorrectly()
+    {
+        // Arrange
+        string expected = "Line 1\r\nLine 2";
+        string actual = "Line 1\nLine 2";
+
+        // Act
+        var results = WildcardMatchAnalyzer.AnalyzeMatch(expected, actual);
+
+        // Assert
+        Assert.AreEqual(2, results.Count);
+        Assert.IsTrue(results[0].IsMatch);
+        Assert.IsTrue(results[1].IsMatch);
+    }
+}
