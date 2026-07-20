@@ -7,7 +7,7 @@
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
   </ItemGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="MSTest.TestAdapter" Version="4.3.0" />
     <PackageVersion Include="MSTest.TestFramework" Version="4.3.0" />
     <PackageVersion Include="System.CodeDom" Version="10.0.9" />
