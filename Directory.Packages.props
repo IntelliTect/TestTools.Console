@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="MSTest.TestAdapter" Version="4.4.0" />
-    <PackageVersion Include="MSTest.TestFramework" Version="4.4.0" />
+    <PackageVersion Include="MSTest.TestFramework" Version="4.4.1" />
     <PackageVersion Include="System.CodeDom" Version="10.0.12" />
   </ItemGroup>
 </Project>
