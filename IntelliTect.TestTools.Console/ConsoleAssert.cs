@@ -236,16 +236,20 @@ public static class ConsoleAssert
     /// <param name="comparisonOperator"></param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
+    /// <param name="escapeCharacter">The escape character used to treat wildcard characters as literals.</param>
     private static string Expect(
         string expected, Action action, Func<string, string, bool> comparisonOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal")
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false,
+        char escapeCharacter = '\\')
     {
         (string input, string output) = Parse(expected);
 
         return Execute(input, output, action,
             (left, right) => comparisonOperator(left, right),
-            normalizeOptions, equivalentOperatorErrorMessage);
+            normalizeOptions, equivalentOperatorErrorMessage, isWildcardMatching, escapeCharacter);
     }
 
     /// <summary>
@@ -260,20 +264,26 @@ public static class ConsoleAssert
     /// <param name="comparisonOperator"></param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the result of <paramref name="action"/> does not match the <paramref name="expected"/> value</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
+    /// <param name="escapeCharacter">The escape character used to treat wildcard characters as literals. Passed through to the wildcard analyzer for consistent diagnostics.</param>
     private static Task<string> ExpectAsync(
         string expected, Func<Task> action, Func<string, string, bool> comparisonOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal")
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false,
+        char escapeCharacter = '\\')
     {
         (string input, string output) = Parse(expected);
 
         return ExecuteAsync(input, output, action,
             (left, right) => comparisonOperator(left, right),
-            normalizeOptions, equivalentOperatorErrorMessage);
+            normalizeOptions, equivalentOperatorErrorMessage, isWildcardMatching, escapeCharacter);
     }
 
     private static readonly Func<string, string, bool> LikeOperator =
         (expected, output) => output.IsLike(expected);
+
+    private const string WildcardMismatchMessage = "The values are not like (using wildcards) each other";
 
     /// <summary>
     /// Performs a unit test on a console-based method. A "view" of
@@ -288,7 +298,8 @@ public static class ConsoleAssert
     [Obsolete]
     public static string ExpectLike(string expected, char escapeCharacter, Action action)
     {
-        return Expect(expected, action, (pattern, output) => output.IsLike(pattern, escapeCharacter));
+        return Expect(expected, action, (pattern, output) => output.IsLike(pattern, escapeCharacter),
+            NormalizeOptions.Default, WildcardMismatchMessage, isWildcardMatching: true, escapeCharacter);
     }
 
     /// <summary>
@@ -310,7 +321,9 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings ? NormalizeOptions.NormalizeLineEndings : NormalizeOptions.None,
-            "The values are not like (using wildcards) each other");
+            WildcardMismatchMessage,
+            isWildcardMatching: true,
+            escapeCharacter);
     }
 
     /// <summary>
@@ -333,7 +346,9 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
-            "The values are not like (using wildcards) each other");
+            WildcardMismatchMessage,
+            isWildcardMatching: true,
+            escapeCharacter);
     }
 
     /// <summary>
@@ -356,7 +371,9 @@ public static class ConsoleAssert
             action,
             (pattern, output) => output.IsLike(pattern, escapeCharacter),
             normalizeLineEndings,
-            "The values are not like (using wildcards) each other");
+            WildcardMismatchMessage,
+            isWildcardMatching: true,
+            escapeCharacter);
     }
 
     /// <summary>
@@ -397,17 +414,21 @@ public static class ConsoleAssert
     /// <param name="areEquivalentOperator">delegate for comparing the expected from actual output.</param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
+    /// <param name="escapeCharacter">The escape character used to treat wildcard characters as literals. Passed through to the wildcard analyzer for consistent diagnostics.</param>
     private static string Execute(string givenInput,
         string expectedOutput,
         Action action,
         Func<string, string, bool> areEquivalentOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal"
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false,
+        char escapeCharacter = '\\'
     )
     {
         string output = Execute(givenInput, action);
 
-        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage);
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage, isWildcardMatching, escapeCharacter);
     }
 
     /// <summary>
@@ -419,17 +440,21 @@ public static class ConsoleAssert
     /// <param name="areEquivalentOperator">delegate for comparing the expected from actual output.</param>
     /// <param name="normalizeOptions">Options to normalize input and expected output</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
+    /// <param name="escapeCharacter">The escape character used to treat wildcard characters as literals. Passed through to the wildcard analyzer for consistent diagnostics.</param>
     private static async Task<string> ExecuteAsync(string givenInput,
         string expectedOutput,
         Func<Task> action,
         Func<string, string, bool> areEquivalentOperator,
         NormalizeOptions normalizeOptions = NormalizeOptions.Default,
-        string equivalentOperatorErrorMessage = "Values are not equal"
+        string equivalentOperatorErrorMessage = "Values are not equal",
+        bool isWildcardMatching = false,
+        char escapeCharacter = '\\'
     )
     {
         string output = await ExecuteAsync(givenInput, action);
 
-        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage);
+        return CompareOutput(output, expectedOutput, normalizeOptions, areEquivalentOperator, equivalentOperatorErrorMessage, isWildcardMatching, escapeCharacter);
     }
 
     private static string CompareOutput(
@@ -437,7 +462,9 @@ public static class ConsoleAssert
         string expectedOutput,
         NormalizeOptions normalizeOptions,
         Func<string, string, bool> areEquivalentOperator,
-        string equivalentOperatorErrorMessage)
+        string equivalentOperatorErrorMessage,
+        bool isWildcardMatching = false,
+        char escapeCharacter = '\\')
     {
         if ((normalizeOptions & NormalizeOptions.NormalizeLineEndings) != 0)
         {
@@ -451,7 +478,7 @@ public static class ConsoleAssert
             expectedOutput = StripAnsiEscapeCodes(expectedOutput);
         }
 
-        AssertExpectation(expectedOutput, output, areEquivalentOperator, equivalentOperatorErrorMessage);
+        AssertExpectation(expectedOutput, output, areEquivalentOperator, equivalentOperatorErrorMessage, isWildcardMatching, escapeCharacter);
         return output;
     }
 
@@ -462,13 +489,15 @@ public static class ConsoleAssert
     /// <param name="output">The actual value output.</param>
     /// <param name="areEquivalentOperator">The operator used to compare equivalency.</param>
     /// <param name="equivalentOperatorErrorMessage">A textual description of the message if the <paramref name="areEquivalentOperator"/> returns false</param>
+    /// <param name="isWildcardMatching">True when the comparison uses wildcard matching; enables the detailed wildcard diff in the failure message.</param>
+    /// <param name="escapeCharacter">The escape character used to treat wildcard characters as literals. Passed through to the wildcard analyzer for consistent diagnostics.</param>
     private static void AssertExpectation(string expectedOutput, string output, Func<string, string, bool> areEquivalentOperator,
-        string equivalentOperatorErrorMessage = null)
+        string equivalentOperatorErrorMessage = null, bool isWildcardMatching = false, char escapeCharacter = '\\')
     {
         bool failTest = !areEquivalentOperator(expectedOutput, output);
         if (failTest)
         {
-            throw new ConsoleAssertException(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage));
+            throw new ConsoleAssertException(GetMessageText(expectedOutput, output, equivalentOperatorErrorMessage, isWildcardMatching, escapeCharacter));
         }
     }
 
@@ -555,7 +584,7 @@ public static class ConsoleAssert
     }
 
 
-    private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null)
+    private static string GetMessageText(string expectedOutput, string output, string equivalentOperatorErrorMessage = null, bool isWildcardMatching = false, char escapeCharacter = '\\')
     {
         string result = "";
 
@@ -567,7 +596,7 @@ public static class ConsoleAssert
 
         int expectedOutputLength = expectedOutput.Length;
         int outputLength = output.Length;
-        if (expectedOutputLength != outputLength)
+        if (expectedOutputLength != outputLength && !isWildcardMatching)
         {
             result += $"{Environment.NewLine}The expected length of {expectedOutputLength} does not match the output length of {outputLength}. ";
             string[] items = (new string[] { expectedOutput, output }).OrderBy(item => item.Length).ToArray();
@@ -580,18 +609,39 @@ public static class ConsoleAssert
         else
         {
             // Write the output that shows the difference.
-            for (int counter = 0; counter < Math.Min(expectedOutput.Length, output.Length); counter++)
+            // Skip character-by-character comparison for wildcard matching as wildcards intentionally differ from literal text.
+            if (!isWildcardMatching)
             {
-                if (expectedOutput[counter] != output[counter]) // TODO: The message is invalid when using wild cards.
+                for (int counter = 0; counter < Math.Min(expectedOutput.Length, output.Length); counter++)
                 {
-                    result += Environment.NewLine
-                        + $"Character {counter} did not match: "
-                        + $"'{CSharpStringEncode(expectedOutput[counter])}' != '{CSharpStringEncode(output[counter])})'";
+                    if (expectedOutput[counter] != output[counter])
+                    {
+                        result += Environment.NewLine
+                            + $"Character {counter} did not match: "
+                            + $"'{CSharpStringEncode(expectedOutput[counter])}' != '{CSharpStringEncode(output[counter])}'";
 
-                    break;
+                        break;
+                    }
                 }
             }
         }
+
+        // If wildcard matching is being used, add detailed line-by-line analysis
+        if (isWildcardMatching)
+        {
+            try
+            {
+                var matchResults = WildcardMatchAnalyzer.AnalyzeMatch(expectedOutput, output, escapeCharacter);
+                result += WildcardMatchAnalyzer.GenerateDetailedDiff(matchResults);
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                // Pattern analysis failed — inform user but don't crash the test runner
+                result += Environment.NewLine +
+                    $"⚠️  Note: Could not generate detailed wildcard analysis: {ex.Message}";
+            }
+        }
+
         return result;
     }
 
@@ -718,7 +768,7 @@ public static class ConsoleAssert
         process.WaitForExit();
         standardOutput = process.StandardOutput.ReadToEnd();
         standardError = process.StandardError.ReadToEnd();
-        AssertExpectation(expected, standardOutput, (left, right) => LikeOperator(left, right), "The values are not like (using wildcards) each other");
+        AssertExpectation(expected, standardOutput, LikeOperator, WildcardMismatchMessage, isWildcardMatching: true);
         return process;
     }
 
